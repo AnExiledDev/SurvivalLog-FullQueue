@@ -17,10 +17,13 @@ function setInterval(callback) {
   return intervals.length;
 }
 
-// One run of every interval the script set, which is how its poll runs.
+// One run of every interval the script set, which is how its poll runs. Vue draws whatever the poll changed.
 function poll() {
   intervals.slice().forEach(function (callback) { callback(); });
+  openPages.forEach(draw);
 }
+
+var openPages = [];
 
 var SLOT_PX = 32.2;
 var GAP_PX = 2.1;
@@ -232,10 +235,18 @@ function openCoreUI1() {
   frame.src = 'https://webui.local/UI/CoreUI1/CoreUI1.html';
   frame.contentWindow = page;
   frame.contentDocument = doc;
+  page.frame = frame;
   page.bar = doc.body.appendChild(new FakeElement('div', 'queue-flow-wrapper')).appendChild(new FakeBar());
   page.addEventListener('message', gameListener(page));
+  openPages.push(page);
 
   return page;
+}
+
+// The game dropping CoreUI1's iframe, as it does when it reloads the page.
+function closeCoreUI1(page) {
+  document.body.removeChild(page.frame);
+  openPages = openPages.filter(function (open) { return open !== page; });
 }
 
 // CoreUI1's message listener and its WebUI_CoreUI1_ActionMsg handler, cut down to what the queue needs.
@@ -326,6 +337,40 @@ function wheel(page, deltaY, deltaMode) {
   if (page.bar.scrollLeft !== before) page.bar.dispatch('scroll', {});
 
   return event.defaultPrevented;
+}
+
+// The bar scrolled by something other than the script's wheel handler, as a browser does when it keeps the scroll
+// position inside shrunk content.
+function scrollTo(page, px) {
+  page.bar.scrollLeft = px;
+  page.bar.dispatch('scroll', {});
+}
+
+function slotPitch() { return SLOT_PX + GAP_PX; }
+
+// Whether the bar is scrolled by a whole number of slots.
+function isScrolledByWholeSlots(page) {
+  var slots = page.bar.scrollLeft / slotPitch();
+
+  return Math.abs(slots - Math.round(slots)) < 1e-6;
+}
+
+// The game's click-through collects the full box of every element marked data-interactive whose pointer events are
+// on, clipped or not, and the world gets no click inside any of them. Lists the slots whose box it would collect past
+// the bar's visible inside, such as "2,7".
+function strayClickAreas(page) {
+  var left = page.bar.getBoundingClientRect().left + page.bar.clientLeft;
+  var right = left + page.bar.clientWidth;
+
+  return page.bar.slots
+    .map(function (slot, index) {
+      var box = slot.getBoundingClientRect();
+      var isCollected = slot.hasAttribute('data-interactive') && slot.style.pointerEvents !== 'none';
+
+      return isCollected && (box.left < left || box.right > right) ? String(index) : null;
+    })
+    .filter(function (index) { return index !== null; })
+    .join(',');
 }
 
 // A click where the slot is drawn: the game's handler cancels a filled, cancellable slot by its order's parent id. A slot

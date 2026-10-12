@@ -1,10 +1,11 @@
 // Full Queue's web half. Runs in Root.html, the document every game page iframe sits in. The queue bar at the bottom
 // of the HUD (CoreUI1) is drawn from a list the game's page cuts to the first five waiting orders. The plugin puts
 // every waiting order into the game's update, and this script gives the bar the ones past the fifth too. With more
-// than five the bar keeps the width of five slots and scrolls sideways with the mouse wheel, and the first and last
-// whole slots in sight show how many orders are out of sight on their side. Slots scrolled out of sight stop taking
-// clicks, so they cannot block clicks on the world behind them. With five or fewer the bar is left exactly as the game
-// draws it. Sent again by the plugin every couple of seconds; the guard below makes a second copy return at once.
+// than five the bar keeps the width of five slots and scrolls sideways with the mouse wheel a whole slot at a time,
+// and the first and last whole slots in sight show how many orders are out of sight on their side. Slots not wholly
+// in sight stop taking clicks, so they cannot block clicks on the world behind them. A CoreUI1 page that loads while
+// more than five wait gets the whole queue back from the last update. With five or fewer the bar is left exactly as
+// the game draws it. Sent again by the plugin every couple of seconds; the guard below makes a second copy return at once.
 (function () {
   if (window.__slfullqueue) return;
 
@@ -34,6 +35,9 @@
   ].join('\n');
 
   var reported = {};
+
+  // The whole queue from the last update of more than five orders, or null once a shorter one came.
+  var lastLongQueue = null;
 
   // One note per kind of failure, so a page a game update reshaped says so once instead of every poll.
   function diag(kind, error) {
@@ -86,10 +90,46 @@
     // The page draws the new list after this event, long or short, so the bar is fitted to it on the next frame.
     fitOnNextFrame(page);
 
-    if (!Array.isArray(orders) || orders.length <= GAME_SLOTS) return;
+    var isLongQueue = Array.isArray(orders) && orders.length > GAME_SLOTS;
 
-    page.eval('state').queueList = orders.map(function (order) { return order || emptySlot(); });
+    lastLongQueue = isLongQueue ? orders.map(function (order) { return order || emptySlot(); }) : null;
+
+    if (!isLongQueue) return;
+
+    page.eval('state').queueList = lastLongQueue.slice();
     takeQueueOut(page, message, data);
+  }
+
+  // A page that loads after the last long update holds the game's cut of it until the queue next changes, since the
+  // poll only starts listening a moment after the page loads. While the page shows exactly the first five of the last
+  // long queue, that queue is put back. Any update of five or fewer forgets the long queue, so a real shorter queue is
+  // never replaced by an old one.
+  function restoreQueue(page) {
+    if (!lastLongQueue) return;
+
+    try {
+      var state = page.eval('state');
+      var shown = state.queueList;
+
+      if (!shown || shown.length !== GAME_SLOTS || !isCutOf(shown, lastLongQueue)) return;
+
+      state.queueList = lastLongQueue.slice();
+      fitOnNextFrame(page);
+    } catch (e) {
+      diag('queue restore', e);
+    }
+  }
+
+  function isCutOf(shown, queue) {
+    for (var i = 0; i < GAME_SLOTS; i++) {
+      if (!isSameOrder(shown[i], queue[i])) return false;
+    }
+
+    return true;
+  }
+
+  function isSameOrder(a, b) {
+    return !!a && !!b && a.parentId === b.parentId && a.name === b.name && a.icon === b.icon;
   }
 
   function fitOnNextFrame(page) {
@@ -147,9 +187,10 @@
     return slots;
   }
 
-  // A slot scrolled fully out of sight still has a box on screen to the game's click-through, which would swallow
-  // clicks on the world there. Turning its pointer events off takes it out of that list until it scrolls back. The
-  // first and last whole slots in sight carry the count of orders out of sight on their side.
+  // The game's click-through takes each slot's whole box, even the part the bar hides, so a slot not wholly inside
+  // the bar would swallow clicks on the world past its edge. Turning its pointer events off takes it out of that list
+  // until it is wholly back in sight. The first and last whole slots carry the count of orders out of sight, or partly
+  // out of sight, on their side.
   function fitSlots(bar, slots, isLong) {
     var left = bar.getBoundingClientRect().left + bar.clientLeft;
     var right = left + bar.clientWidth;
@@ -160,10 +201,9 @@
 
     for (var i = 0; i < slots.length; i++) {
       var box = slots[i].getBoundingClientRect();
-      var isInSight = !isLong || (box.right > left + EDGE_PX && box.left < right - EDGE_PX);
       var isWhole = !isLong || (box.left >= left - EDGE_PX && box.right <= right + EDGE_PX);
 
-      setPointerEvents(slots[i], isInSight ? '' : 'none');
+      setPointerEvents(slots[i], isWhole ? '' : 'none');
 
       if (isWhole) {
         if (firstWhole < 0) firstWhole = i;
@@ -200,16 +240,33 @@
   function scrollSideways(event) {
     var bar = event.currentTarget;
     var room = bar.scrollWidth - bar.clientWidth;
+    var pitch = slotPitch(slotsIn(bar));
 
-    if (!bar.classList.contains(LONG) || room <= 0) return;
+    if (!bar.classList.contains(LONG) || room <= 0 || pitch <= 0) return;
 
     var delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
 
     if (event.deltaMode === 1) delta *= WHEEL_LINE_PX;
     if (event.deltaMode === 2) delta *= bar.clientWidth;
+    if (delta === 0) return;
 
     event.preventDefault();
-    bar.scrollLeft = Math.max(0, Math.min(room, bar.scrollLeft + delta));
+    bar.scrollLeft = wholeSlotsFrom(bar.scrollLeft, delta, pitch, room);
+  }
+
+  // The distance from one slot to the next, read from the boxes: offsetLeft rounds to whole pixels and the game's slots
+  // sit 34.3px apart, so whole-slot steps built on it would drift a slot partly out of the bar.
+  function slotPitch(slots) {
+    return slots.length > 1 ? slots[1].getBoundingClientRect().left - slots[0].getBoundingClientRect().left : 0;
+  }
+
+  // The wheel moves whole slots, at least one per notch, so no slot is left partly out of the bar. The bar has room
+  // for a whole number of slots past the fifth, so the ends stay exact.
+  function wholeSlotsFrom(from, delta, pitch, room) {
+    var steps = Math.max(1, Math.round(Math.abs(delta) / pitch));
+    var target = (Math.round(from / pitch) + (delta < 0 ? -steps : steps)) * pitch;
+
+    return Math.max(0, Math.min(room, target));
   }
 
   function onScrolled(event) {
@@ -265,6 +322,7 @@
     try {
       listen(page);
       addStyle(doc);
+      restoreQueue(page);
 
       var bar = doc.querySelector(BAR);
 
