@@ -130,19 +130,48 @@ public class QueueBarPageTests
 
         page.GameSendsOrders(8);
 
-        Assert.True(page.Wheel(100));
-        Assert.Equal(100.0, page.Number("page.bar.scrollLeft"), 3);
+        Assert.True(page.Wheel(30));
+        Assert.Equal(page.Number("slotPitch()"), page.Number("page.bar.scrollLeft"), 3);
     }
 
     [Fact]
-    public void A_wheel_in_lines_scrolls_a_line_height_per_line()
+    public void A_wheel_in_lines_counts_a_line_height_per_line()
     {
         var page = PageWithScript();
 
         page.GameSendsOrders(8);
-        page.Wheel(3, deltaMode: 1);
 
-        Assert.Equal(48.0, page.Number("page.bar.scrollLeft"), 3);
+        // Five lines are 80px, the nearest whole number of slots to it is two.
+        page.Wheel(5, deltaMode: 1);
+
+        Assert.Equal(2 * page.Number("slotPitch()"), page.Number("page.bar.scrollLeft"), 3);
+    }
+
+    [Fact]
+    public void A_wheel_notch_moves_whole_slots_so_no_slot_reaches_past_the_bar_edge()
+    {
+        var page = PageWithScript();
+
+        page.GameSendsOrders(8);
+        page.Wheel(100);
+
+        Assert.True(page.Is("isScrolledByWholeSlots(page)"));
+        Assert.Equal(3 * page.Number("slotPitch()"), page.Number("page.bar.scrollLeft"), 3);
+        Assert.Equal("", page.Text("strayClickAreas(page)"));
+    }
+
+    [Fact]
+    public void A_slot_partly_out_of_sight_takes_no_clicks_and_counts_as_out_of_sight()
+    {
+        var page = PageWithScript();
+
+        page.GameSendsOrders(8);
+        page.Run("scrollTo(page, 50)");
+        page.NextFrame();
+
+        Assert.Equal("", page.Text("strayClickAreas(page)"));
+        Assert.Equal("none,none,auto,auto,auto,auto,none,none", page.Text("slotPointerEvents(page)"));
+        Assert.Equal("2:before:+2,5:after:+2", page.Text("counts(page)"));
     }
 
     [Fact]
@@ -249,6 +278,55 @@ public class QueueBarPageTests
 
         Assert.Equal(1.0, page.Number("intervals.length"));
         Assert.Equal(2.0, page.Number("page.windowListeners.length"));
+    }
+
+    [Fact]
+    public void A_page_reloaded_while_more_than_five_wait_gets_the_whole_queue_back_at_the_next_poll()
+    {
+        var page = PageWithScript();
+
+        page.GameSendsOrders(8);
+        page.ReloadPage();
+
+        // The reloaded page's first update reaches it before the poll has found it, so the game cuts it to five.
+        page.GameSendsOrders(8);
+
+        Assert.Equal("order 1,order 2,order 3,order 4,order 5", page.Text("shownNames(page)"));
+
+        page.Poll();
+        page.NextFrame();
+
+        Assert.Equal(EightOrders, page.Text("shownNames(page)"));
+        Assert.Equal("4:after:+3", page.Text("counts(page)"));
+    }
+
+    [Fact]
+    public void A_queue_that_shrank_to_five_is_not_replaced_by_the_old_long_one_after_a_reload()
+    {
+        var page = PageWithScript();
+
+        page.GameSendsOrders(8);
+        page.GameSendsOrders(5);
+        page.ReloadPage();
+        page.GameSendsOrders(5);
+        page.Poll();
+        page.NextFrame();
+
+        Assert.Equal("order 1,order 2,order 3,order 4,order 5", page.Text("shownNames(page)"));
+    }
+
+    [Fact]
+    public void A_reloaded_page_showing_a_different_short_queue_keeps_it()
+    {
+        var page = PageWithScript();
+
+        page.GameSendsOrders(8);
+        page.ReloadPage();
+        page.GameSendsOrders(3);
+        page.Poll();
+        page.NextFrame();
+
+        Assert.Equal("order 1,order 2,order 3,,", page.Text("shownNames(page)"));
     }
 
     [Fact]

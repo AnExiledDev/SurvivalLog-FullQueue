@@ -22,6 +22,9 @@ internal sealed class PageScript
     /// <summary>Opens CoreUI1. Fake browsers run capture listeners first unless told otherwise, as current ones do.</summary>
     public void OpenPage(bool capturesFirst = true) => Run($"var page = openCoreUI1(); page.capturesFirst = {Js(capturesFirst)};");
 
+    /// <summary>The game dropping CoreUI1 and loading it again; the script finds the new page at its next poll.</summary>
+    public void ReloadPage() => Run("closeCoreUI1(page); page = openCoreUI1();");
+
     /// <summary>The plugin sending the script again, as it does every couple of seconds.</summary>
     public void SendScriptAgain() => _engine.Execute(Resource("FullQueue.page.js"));
 
