@@ -1,0 +1,47 @@
+Name: Full Queue
+Summary: Queue up several orders in the countdown at the start of a game and on expeditions, the same way you can at home, instead of one at a time.
+
+Description (BBCode):
+At home, Survival Log lets you line up orders: walk there, pick that up, cook this. In the countdown before the disaster and on expeditions it only keeps one, and every new order throws away the ones still waiting. Full Queue lets your orders queue up there too, so a new order joins the end of the queue like it does at home.
+
+[size=5]Main features[/size]
+[list]
+[*][b]A full queue at the start of a game[/b]: in the countdown before the disaster, new orders join the queue instead of replacing it.[/*]
+[*][b]A full queue on expeditions[/b]: the same on an expedition.[/*]
+[*][b]Works like home[/b]: the queue bar, cancelling an order and everything else work the way they do at home.[/*]
+[*][b]Each place has its own switch[/b]: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.[/*]
+[/list]
+No new keys or buttons. Full Queue adds no data to your save and does not edit game files. You can remove it at any time.
+
+[size=5]Known issues[/size]
+[list]
+[*]When the countdown ends and the disaster hits, the game drops any orders still waiting, as it did before.[/*]
+[*]When an expedition ends, any orders still waiting are dropped. They do not come home with you.[/*]
+[*]The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me and include [font=Courier New]BepInEx&#92;full-queue.log[/font].[/*]
+[/list]
+If something odd happens with orders at the start of a game or on an expedition, try it with Enabled set to false to see whether the mod caused it, and please tell me either way (see Feedback below).
+
+[size=5]Requirements[/size]
+[list]
+[*]Survival Log 1.1.18317. A game update can break it until the mod is updated.[/*]
+[*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url] (BepInEx 6.0.0-be.788, IL2CPP). Install it first.[/*]
+[/list]
+
+[size=5]Installation[/size]
+[list=1]
+[*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
+[*]Put [font=Courier New]FullQueue.dll[/font] in the BepInEx&#92;plugins folder inside the game folder. Full path example:
+[code]C:&#92;Program Files (x86)&#92;Steam&#92;steamapps&#92;common&#92;Survival Log&#92;BepInEx&#92;plugins&#92;FullQueue.dll[/code][/*]
+[/list]
+
+[size=5]Uninstall[/size]
+Delete [font=Courier New]FullQueue.dll[/font] from the [font=Courier New]BepInEx&#92;plugins[/font] folder.
+
+[size=5]Configuration[/size]
+To turn the mod off, or the queue off for the start of a game or for expeditions, edit [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.fullqueue.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
+
+[size=5]Feedback[/size]
+Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx&#92;LogOutput.log[/font] and [font=Courier New]BepInEx&#92;full-queue.log[/font].
+
+[size=5]Source and license[/size]
+Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue]github.com/AnExiledDev/SurvivalLog-FullQueue[/url]
