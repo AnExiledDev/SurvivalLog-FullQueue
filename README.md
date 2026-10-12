@@ -8,7 +8,7 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 
 - **A full queue at the start of a game**: in the countdown before the disaster, new orders join the queue instead of replacing it.
 - **A full queue on expeditions**: the same on an expedition.
-- **Works like home**: the queue bar, cancelling an order and everything else work the way they do at home. The mod only changes whether a new order replaces the queue or joins it.
+- **Only one thing changes**: a new order joins the end of the queue instead of replacing it. Nothing else about orders is changed.
 - **Each place has its own switch**: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.
 - **A log file**: what the mod did is written to `BepInEx\full-queue.log`.
 
@@ -21,6 +21,8 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 - When the countdown ends and the disaster hits, the game drops any orders still waiting. It did that before too.
 - When an expedition ends, any orders still waiting are dropped. They do not come home with you.
 - The game lets orders queue at home on its own, so the mod leaves home alone.
+- The tutorial is left as the game has it. Its guided steps may expect one order at a time, so the mod stays out.
+- In the countdown before the disaster the queue bar you see at home may not show, so you may not see your waiting orders there. Showing, reordering or cancelling queued orders in the countdown is untested.
 - The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me (see [Feedback](#feedback-and-bug-reports)) and include `BepInEx\full-queue.log`. Its last lines say what the mod saw when the expedition started.
 - If something odd happens with orders at the start of a game or on an expedition, try it with `Enabled` set to `false` to see whether the mod caused it, and please tell me either way.
 - The mod's own text, in the log, is in English.

@@ -6,22 +6,36 @@ namespace FullQueue.Tests;
 public class PlacesTests
 {
     [Fact]
-    public void A_frozen_timer_is_an_expedition_even_when_the_expedition_world_is_set_before_the_disaster()
+    public void An_expedition_is_an_expedition_even_when_its_world_is_set_before_the_disaster()
     {
-        Assert.Equal(Place.Expedition, Places.Classify(isFrozenTimer: true, isBeforeDisaster: true));
-        Assert.Equal(Place.Expedition, Places.Classify(isFrozenTimer: true, isBeforeDisaster: false));
+        Assert.Equal(Place.Expedition, Places.Classify(WorldMode.Expedition, isBeforeDisaster: true));
+        Assert.Equal(Place.Expedition, Places.Classify(WorldMode.Expedition, isBeforeDisaster: false));
     }
 
     [Fact]
-    public void A_world_before_the_disaster_without_a_frozen_timer_is_the_countdown_at_the_start_of_a_game()
+    public void The_tutorial_is_never_taken_for_the_countdown_even_when_its_world_is_set_before_the_disaster()
     {
-        Assert.Equal(Place.Prologue, Places.Classify(isFrozenTimer: false, isBeforeDisaster: true));
+        Assert.Equal(Place.Tutorial, Places.Classify(WorldMode.Tutorial, isBeforeDisaster: true));
+        Assert.Equal(Place.Tutorial, Places.Classify(WorldMode.Tutorial, isBeforeDisaster: false));
     }
 
     [Fact]
-    public void A_world_after_the_disaster_without_a_frozen_timer_is_home()
+    public void A_normal_game_before_the_disaster_is_the_countdown_at_the_start_of_a_game()
     {
-        Assert.Equal(Place.Home, Places.Classify(isFrozenTimer: false, isBeforeDisaster: false));
+        Assert.Equal(Place.Prologue, Places.Classify(WorldMode.Normal, isBeforeDisaster: true));
+    }
+
+    [Fact]
+    public void A_normal_game_after_the_disaster_is_home()
+    {
+        Assert.Equal(Place.Home, Places.Classify(WorldMode.Normal, isBeforeDisaster: false));
+    }
+
+    [Fact]
+    public void A_game_whose_kind_cannot_be_read_is_not_guessed_from_the_world_state()
+    {
+        Assert.Equal(Place.Unknown, Places.Classify(mode: null, isBeforeDisaster: true));
+        Assert.Equal(Place.Unknown, Places.Classify(mode: null, isBeforeDisaster: false));
     }
 }
 
@@ -46,6 +60,19 @@ public class QueueRuleTests
     {
         Assert.Equal(QueueChange.LeftToGame, QueueRule.Decide(BothOn, Place.Home, isAlreadyQueuing: false));
         Assert.Equal(QueueChange.LeftToGame, QueueRule.Decide(new QueueSettings(false, false), Place.Home, isAlreadyQueuing: false));
+    }
+
+    [Fact]
+    public void The_tutorial_keeps_the_games_one_order_at_a_time_whatever_the_settings_say()
+    {
+        Assert.Equal(QueueChange.LeftToGame, QueueRule.Decide(BothOn, Place.Tutorial, isAlreadyQueuing: false));
+        Assert.Equal(QueueChange.LeftToGame, QueueRule.Decide(new QueueSettings(false, false), Place.Tutorial, isAlreadyQueuing: false));
+    }
+
+    [Fact]
+    public void A_place_the_mod_cannot_tell_is_left_to_the_game()
+    {
+        Assert.Equal(QueueChange.LeftToGame, QueueRule.Decide(BothOn, Place.Unknown, isAlreadyQueuing: false));
     }
 
     [Fact]
