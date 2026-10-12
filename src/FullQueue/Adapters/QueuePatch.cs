@@ -3,6 +3,7 @@ using FullQueue.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using HarmonyLib;
+using UnityEngine;
 
 namespace FullQueue.Adapters;
 
@@ -19,13 +20,16 @@ internal static class QueuePatch
 {
     private const string Doing = "letting the character queue orders, the game's one order at a time stays";
 
+    private static readonly Type[] InitializeParameters = { typeof(int), typeof(int), typeof(Vector3), typeof(WorldStateType) };
+
     private static QueueSettings _settings = new(InPrologue: false, OnExpeditions: false);
 
     public static void Apply(Harmony harmony, QueueSettings settings)
     {
         _settings = settings;
 
-        PatchKit.Patch(harmony, typeof(QueuePatch), typeof(LeadingRole), nameof(LeadingRole.Initialize), nameof(OpenQueue),
+        PatchKit.Patch(harmony, typeof(QueuePatch), typeof(LeadingRole), nameof(LeadingRole.Initialize), InitializeParameters,
+            nameof(OpenQueue),
             "hooked LeadingRole.Initialize: orders queue up where the settings allow",
             "the game keeps one order at a time before the disaster and on expeditions");
     }
@@ -40,7 +44,7 @@ internal static class QueuePatch
 
             if (orders == null) return;
 
-            var place = Places.Classify(IsExpeditionTimer(), worldStateType == WorldStateType.PreDisaster);
+            var place = Places.Classify(ReadWorldMode(), worldStateType == WorldStateType.PreDisaster);
             var change = QueueRule.Decide(_settings, place, orders.Mode == ActionMode.Queue);
 
             if (change == QueueChange.OpenQueue) orders.Mode = ActionMode.Queue;
@@ -53,9 +57,17 @@ internal static class QueuePatch
         }
     }
 
-    /// <summary>The game gives only an expedition's world a frozen timer (GameTimeManager.Initialize).</summary>
-    private static bool IsExpeditionTimer() =>
-        GameSingleton.Existing<BattleLogicWorld>()?._GameTimeManager?.Timer?.TryCast<FrozenTimer>() != null;
+    /// <summary>
+    /// BattleLogicWorld.Initialize records the kind of game before the game makes the character. A world the mod
+    /// cannot read, or a kind of game it does not know, is left unread.
+    /// </summary>
+    private static WorldMode? ReadWorldMode() => GameSingleton.Existing<BattleLogicWorld>()?.GameModeKey switch
+    {
+        GameMode.Default => WorldMode.Normal,
+        GameMode.Guide => WorldMode.Tutorial,
+        GameMode.Explore => WorldMode.Expedition,
+        _ => null,
+    };
 
     private static string Describe(Place place, QueueChange change)
     {
@@ -63,6 +75,8 @@ internal static class QueuePatch
         {
             Place.Prologue => "countdown before the disaster",
             Place.Expedition => "expedition",
+            Place.Tutorial => "tutorial",
+            Place.Unknown => "could not tell what kind of game this is",
             _ => "home",
         };
 

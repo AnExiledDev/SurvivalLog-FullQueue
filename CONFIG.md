@@ -10,4 +10,6 @@ Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the
 | `QueueInPrologue` | `true` | Queue orders in the countdown before the disaster at the start of a game. `false` keeps the game's one order at a time there. |
 | `QueueOnExpeditions` | `true` | Queue orders on expeditions. `false` keeps the game's one order at a time there. |
 
+The tutorial is always left as the game has it, whatever these say.
+
 There are no keys or buttons to set.
