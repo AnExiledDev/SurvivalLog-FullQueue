@@ -51,7 +51,7 @@ Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the
 
 Built against BepInEx `6.0.0-be.788`.
 
-Check `BepInEx\LogOutput.log` for a line starting `===== Full Queue 0.2.0 started`. It says whether the mod is on, whether the queue is on for the start of a game and for expeditions, and whether the queue bar shows every order. The next lines should say the hooks went in; the queue bar's starts `hooked Reducer_Web_CoreUI1.RA_UpdateActionList`. Once you are in a game, a line `page script sent to the web UI` says the scrolling bar is ready.
+Check `BepInEx\LogOutput.log` for a line starting `===== Full Queue`. It says whether the mod is on, whether the queue is on for the start of a game and for expeditions, and whether the queue bar shows every order. The next lines should say the hooks went in; the queue bar's starts `hooked Reducer_Web_CoreUI1.RA_UpdateActionList`. Once you are in a game, a line `page script sent to the web UI` says the scrolling bar is ready.
 
 Each time you start a game, load a save or start an expedition, the log gets one more line saying where you are and what the mod did, for example `expedition: new orders now join the queue instead of replacing it`.
 
@@ -83,6 +83,7 @@ dotnet test tests/FullQueue.Tests
 
 ## Changelog
 
+- **0.2.1**: Clearer setting descriptions in the settings file, now also in Simplified Chinese. No change to what the mod does.
 - **0.2.0**: The queue bar now shows every waiting order, not just the first 5. With more than 5 it keeps its size and scrolls with the mouse wheel, and a small number shows how many orders are out of sight. Orders past the fifth can be cancelled by clicking them. New setting `ScrollQueue` turns this off.
 - **0.1.0**: First release. Orders queue up in the countdown before the disaster and on expeditions, as at home.
 

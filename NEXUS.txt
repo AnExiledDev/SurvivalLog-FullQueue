@@ -9,6 +9,7 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 [*][b]A full queue at the start of a game[/b]: in the countdown before the disaster, new orders join the queue instead of replacing it.[/*]
 [*][b]A full queue on expeditions[/b]: the same on an expedition.[/*]
 [*][b]Only one thing changes[/b]: a new order joins the end of the queue instead of replacing it. Nothing else about orders is changed.[/*]
+[*][b]See every waiting order[/b]: the queue bar at the bottom of the screen shows all your waiting orders, not just the first 5. With more than 5 it keeps its size and scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight. Click any of them to cancel it.[/*]
 [*][b]Each place has its own switch[/b]: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.[/*]
 [/list]
 No new keys or buttons. Full Queue adds no data to your save and does not edit game files. You can remove it at any time.
@@ -40,7 +41,7 @@ If something odd happens with orders at the start of a game or on an expedition,
 Delete [font=Courier New]FullQueue.dll[/font] from the [font=Courier New]BepInEx&#92;plugins[/font] folder.
 
 [size=5]Configuration[/size]
-To turn the mod off, or the queue off for the start of a game or for expeditions, edit [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.fullqueue.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
+To turn the mod off, the queue off for the start of a game or for expeditions, or the queue bar back to the game's first 5 orders, edit [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.fullqueue.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
 
 [size=5]Feedback[/size]
 Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx&#92;LogOutput.log[/font] and [font=Courier New]BepInEx&#92;full-queue.log[/font].
