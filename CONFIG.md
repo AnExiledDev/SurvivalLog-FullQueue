@@ -6,10 +6,10 @@ Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the
 
 | Setting | Default | What it does |
 | --- | --- | --- |
-| `Enabled` | `true` | Let your character queue several orders in the countdown before the disaster and on expeditions, as at home, and show every waiting order in the queue bar. `false` turns the whole mod off: the game's one order at a time, and the game's queue bar. |
-| `QueueInPrologue` | `true` | Queue orders in the countdown before the disaster at the start of a game. `false` keeps the game's one order at a time there. |
-| `QueueOnExpeditions` | `true` | Queue orders on expeditions. `false` keeps the game's one order at a time there. |
-| `ScrollQueue` | `true` | Show every waiting order in the queue bar at the bottom of the screen. With more than 5 the bar keeps its size and scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight. `false` leaves the game's bar, which shows the first 5. |
+| `Enabled` | `true` | Turns the whole mod on or off. When `true`, your character can queue several orders in the countdown before the disaster and on expeditions, as at home, and the queue bar shows every waiting order. When `false`, the game keeps one order at a time there and its own queue bar. |
+| `QueueInPrologue` | `true` | When `true`, you can queue several orders in the countdown before the disaster at the start of a game. When `false`, each new order there replaces the ones still waiting, as in the game. |
+| `QueueOnExpeditions` | `true` | When `true`, you can queue several orders on expeditions. When `false`, each new order there replaces the ones still waiting, as in the game. |
+| `ScrollQueue` | `true` | When `true`, the queue bar at the bottom of the screen shows every waiting order. With more than 5 it keeps its size, scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight. When `false`, the bar shows only the first 5, as in the game. |
 
 The tutorial is always left as the game has it, whatever these say.
 
