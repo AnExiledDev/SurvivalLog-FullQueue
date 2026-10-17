@@ -22,7 +22,7 @@ Works in English and Chinese.
 [*]When an expedition ends, any orders still waiting are dropped. They do not come home with you.[/*]
 [*]The tutorial is left as the game has it. Its guided steps may expect one order at a time, so the mod stays out.[/*]
 [*]In the countdown before the disaster the queue bar you see at home may not show, so you may not see your waiting orders there. Showing, reordering or cancelling queued orders in the countdown is untested.[/*]
-[*]The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me and include [font=Courier New]BepInEx&#92;full-queue.log[/font].[/*]
+[*]The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me and include [font=Courier New]BepInEx\full-queue.log[/font].[/*]
 [/list]
 If something odd happens with orders at the start of a game or on an expedition, try it with Enabled set to false to see whether the mod caused it, and please tell me either way (see Feedback below).
 
@@ -35,18 +35,18 @@ If something odd happens with orders at the start of a game or on an expedition,
 [size=5]Installation[/size]
 [list=1]
 [*]Install [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i](if no other mods were installed before, start the game once so BepInEx finishes setup, then quit)[/i].[/*]
-[*]Put [font=Courier New]FullQueue.dll[/font] in the BepInEx&#92;plugins folder inside the game folder. Full path example:
-[code]C:&#92;Program Files (x86)&#92;Steam&#92;steamapps&#92;common&#92;Survival Log&#92;BepInEx&#92;plugins&#92;FullQueue.dll[/code][/*]
+[*]Put [font=Courier New]FullQueue.dll[/font] in the BepInEx\plugins folder inside the game folder. Full path example:
+[code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\FullQueue.dll[/code][/*]
 [/list]
 
 [size=5]Uninstall[/size]
-Delete [font=Courier New]FullQueue.dll[/font] from the [font=Courier New]BepInEx&#92;plugins[/font] folder.
+Delete [font=Courier New]FullQueue.dll[/font] from the [font=Courier New]BepInEx\plugins[/font] folder.
 
 [size=5]Configuration[/size]
-To turn the mod off, the queue off for the start of a game or for expeditions, or the queue bar back to the game's first 5 orders, edit [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.fullqueue.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
+To turn the mod off, the queue off for the start of a game or for expeditions, or the queue bar back to the game's first 5 orders, edit [font=Courier New]BepInEx\config\com.dev.survivallog.fullqueue.cfg[/font] while the game is closed (see [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url] for every setting). Changes apply at the next game start.
 
 [size=5]Feedback[/size]
-Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx&#92;LogOutput.log[/font] and [font=Courier New]BepInEx&#92;full-queue.log[/font].
+Found a bug or have an idea? Come say hi on the [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url], or leave a comment here. For bugs, please include [font=Courier New]BepInEx\LogOutput.log[/font] and [font=Courier New]BepInEx\full-queue.log[/font].
 
 [size=5]Source and license[/size]
 Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue]github.com/AnExiledDev/SurvivalLog-FullQueue[/url]
@@ -74,7 +74,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 [*]外出探索结束时，所有还在等待的操作都会被丢掉，不会带回家。[/*]
 [*]新手教程保持游戏原样。教程的引导步骤可能默认一次只有一个操作，所以模组不会介入。[/*]
 [*]灾变前的倒计时中，家里能看到的队列栏可能不会出现，所以那时你可能看不到等待中的操作。倒计时中显示、调整顺序或取消排队操作的情况尚未测试。[/*]
-[*]外出探索部分测试得最少。如果外出探索时仍然一次只能下达一个操作，请告诉我，并附上 [font=Courier New]BepInEx&#92;full-queue.log[/font]。[/*]
+[*]外出探索部分测试得最少。如果外出探索时仍然一次只能下达一个操作，请告诉我，并附上 [font=Courier New]BepInEx\full-queue.log[/font]。[/*]
 [/list]
 如果开局或外出探索时操作出现异常，请把 Enabled 设为 false 再试一次，看看是不是模组造成的，无论结果如何都欢迎告诉我（见下方「反馈」）。
 
@@ -87,18 +87,18 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 [size=5]安装[/size]
 [list=1]
 [*]安装 [url=https://www.nexusmods.com/survivallog/mods/12]BepInEx[/url] [i]（如果之前没有装过其他模组，先启动一次游戏，让 BepInEx 完成初始化，然后退出）[/i]。[/*]
-[*]把 [font=Courier New]FullQueue.dll[/font] 放进游戏目录下的 BepInEx&#92;plugins 文件夹。完整路径示例：
-[code]C:&#92;Program Files (x86)&#92;Steam&#92;steamapps&#92;common&#92;Survival Log&#92;BepInEx&#92;plugins&#92;FullQueue.dll[/code][/*]
+[*]把 [font=Courier New]FullQueue.dll[/font] 放进游戏目录下的 BepInEx\plugins 文件夹。完整路径示例：
+[code]C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\FullQueue.dll[/code][/*]
 [/list]
 
 [size=5]卸载[/size]
-从 [font=Courier New]BepInEx&#92;plugins[/font] 文件夹中删除 [font=Courier New]FullQueue.dll[/font]。
+从 [font=Courier New]BepInEx\plugins[/font] 文件夹中删除 [font=Courier New]FullQueue.dll[/font]。
 
 [size=5]配置[/size]
-如需关闭整个模组、单独关闭开局或外出探索时的队列，或让队列栏恢复为游戏原本只显示前 5 个操作，请在游戏关闭时编辑 [font=Courier New]BepInEx&#92;config&#92;com.dev.survivallog.fullqueue.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。修改会在下次启动游戏时生效。
+如需关闭整个模组、单独关闭开局或外出探索时的队列，或让队列栏恢复为游戏原本只显示前 5 个操作，请在游戏关闭时编辑 [font=Courier New]BepInEx\config\com.dev.survivallog.fullqueue.cfg[/font]。配置文件中每项设置都有中文说明，完整说明见 [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue/blob/main/CONFIG.md]CONFIG.md[/url]（英文）。修改会在下次启动游戏时生效。
 
 [size=5]反馈[/size]
-发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx&#92;LogOutput.log[/font] 和 [font=Courier New]BepInEx&#92;full-queue.log[/font]。
+发现 bug 或有好点子？欢迎来 [url=https://discord.gg/trTsyxUFqg]Core Directive Discord[/url] 打个招呼，或在这里留言。报告 bug 时，请附上 [font=Courier New]BepInEx\LogOutput.log[/font] 和 [font=Courier New]BepInEx\full-queue.log[/font]。
 
 [size=5]源代码与许可[/size]
 基于 MIT 许可开源：[url=https://github.com/AnExiledDev/SurvivalLog-FullQueue]github.com/AnExiledDev/SurvivalLog-FullQueue[/url]
