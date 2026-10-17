@@ -15,6 +15,8 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 
 There are no new keys or buttons. Scroll the queue bar with the mouse wheel while the pointer is over it.
 
+Works in English and Chinese. The mod adds no words of its own to the game's screens: the queue bar shows the game's own order names in the language you play in, and the out-of-sight counts are plain numbers such as `+3`. The settings file explains each setting in English and Simplified Chinese.
+
 Full Queue adds no data to your save and does not edit game files. You can remove it at any time.
 
 ## Known issues and limits
@@ -27,11 +29,11 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 - If you turn `ScrollQueue` off, the queue bar shows the first 5 waiting orders as in the game. The rest still wait their turn.
 - The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me (see [Feedback](#feedback-and-bug-reports)) and include `BepInEx\full-queue.log`. Its last lines say what the mod saw when the expedition started.
 - If something odd happens with orders at the start of a game or on an expedition, try it with `Enabled` set to `false` to see whether the mod caused it, and please tell me either way.
-- The mod's own text, in the log, is in English.
+- The mod's log lines are in English, so they read the same in every bug report.
 
 ## Requirements
 
-- Survival Log 1.1.18317. Built for this version; a game update can break it until the mod is updated.
+- Survival Log 1.1.18902. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game, version `6.0.0-be.788`.
 
 ## Install
