@@ -24,12 +24,8 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 - When the countdown ends and the disaster hits, the game drops any orders still waiting. It did that before too.
 - When an expedition ends, any orders still waiting are dropped. They do not come home with you.
 - The game lets orders queue at home on its own, so the mod leaves home alone.
-- The tutorial is left as the game has it. Its guided steps may expect one order at a time, so the mod stays out.
-- In the countdown before the disaster the queue bar you see at home may not show, so you may not see your waiting orders there. Showing, reordering or cancelling queued orders in the countdown is untested. The scrolling queue bar only changes the bar where the game shows one.
+- The tutorial is left as the game has it.
 - If you turn `ScrollQueue` off, the queue bar shows the first 5 waiting orders as in the game. The rest still wait their turn.
-- The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me (see [Feedback](#feedback-and-bug-reports)) and include `BepInEx\full-queue.log`. Its last lines say what the mod saw when the expedition started.
-- If something odd happens with orders at the start of a game or on an expedition, try it with `Enabled` set to `false` to see whether the mod caused it, and please tell me either way.
-- The mod's log lines are in English, so they read the same in every bug report.
 
 ## Requirements
 

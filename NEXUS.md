@@ -20,11 +20,8 @@ Works in English and Chinese.
 [list]
 [*]When the countdown ends and the disaster hits, the game drops any orders still waiting, as it did before.[/*]
 [*]When an expedition ends, any orders still waiting are dropped. They do not come home with you.[/*]
-[*]The tutorial is left as the game has it. Its guided steps may expect one order at a time, so the mod stays out.[/*]
-[*]In the countdown before the disaster the queue bar you see at home may not show, so you may not see your waiting orders there. Showing, reordering or cancelling queued orders in the countdown is untested.[/*]
-[*]The expedition part is the least tested. If you still can only give one order at a time on an expedition, please tell me and include [font=Courier New]BepInEx\full-queue.log[/font].[/*]
+[*]The tutorial is left as the game has it.[/*]
 [/list]
-If something odd happens with orders at the start of a game or on an expedition, try it with Enabled set to false to see whether the mod caused it, and please tell me either way (see Feedback below).
 
 [size=5]Requirements[/size]
 [list]
@@ -73,11 +70,8 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 [list]
 [*]倒计时结束、灾变来临时，游戏会丢掉所有还在等待的操作，原版也是如此。[/*]
 [*]外出探索结束时，所有还在等待的操作都会被丢掉，不会带回家。[/*]
-[*]新手教程保持游戏原样。教程的引导步骤可能默认一次只有一个操作，所以模组不会介入。[/*]
-[*]灾变前的倒计时中，家里能看到的队列栏可能不会出现，所以那时你可能看不到等待中的操作。倒计时中显示、调整顺序或取消排队操作的情况尚未测试。[/*]
-[*]外出探索部分测试得最少。如果外出探索时仍然一次只能下达一个操作，请告诉我，并附上 [font=Courier New]BepInEx\full-queue.log[/font]。[/*]
+[*]新手教程保持游戏原样。[/*]
 [/list]
-如果开局或外出探索时操作出现异常，请把 Enabled 设为 false 再试一次，看看是不是模组造成的，无论结果如何都欢迎告诉我（见下方「反馈」）。
 
 [size=5]前置要求[/size]
 [list]
