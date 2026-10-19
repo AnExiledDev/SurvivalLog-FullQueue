@@ -31,12 +31,14 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 
 - Survival Log 1.1.18902. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game, version `6.0.0-be.788`.
+- [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer, which applies changed settings at once. Full Queue does not load without it.
 
 ## Install
 
 1. Install the [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12) (if no other mods were installed before, start the game once so BepInEx finishes setup, then quit).
-2. Download `FullQueue-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-FullQueue/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/32).
-3. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
+2. Install Exiled's Toolkit: download `ExiledToolkit-x.y.z.zip` from [its latest release](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit/releases/latest) or from Nexus Mods, and extract it into the game folder (the folder with `SurvivalLog.exe`).
+3. Download `FullQueue-x.y.z.zip` from the [latest release](https://github.com/AnExiledDev/SurvivalLog-FullQueue/releases/latest) or from [Nexus Mods](https://www.nexusmods.com/survivallog/mods/32).
+4. Extract the zip into the game folder (the folder with `SurvivalLog.exe`). It holds a `BepInEx` folder, so the DLL lands in the right place. When asked, merge the folders. The result should be:
    `C:\Program Files (x86)\Steam\steamapps\common\Survival Log\BepInEx\plugins\FullQueue.dll`
 
 ## Uninstall
@@ -45,7 +47,7 @@ Delete `FullQueue.dll` from the `BepInEx\plugins` folder. For a clean slate, als
 
 ## Configuration
 
-Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the first time the game starts with the mod. Edit it while the game is closed; changes apply at the next game start. See [CONFIG.md](CONFIG.md) for every setting.
+Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Changed on the Mods screen, QueueInPrologue takes effect the next time a game loads and QueueOnExpeditions from the next expedition; Enabled and ScrollQueue take effect at the next game start. See [CONFIG.md](CONFIG.md) for every setting.
 
 ## Troubleshooting
 

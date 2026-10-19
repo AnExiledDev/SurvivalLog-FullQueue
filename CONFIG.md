@@ -1,6 +1,6 @@
 # Full Queue settings
 
-Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the first time the game starts with the mod. Edit the file while the game is closed; changes apply at the next game start. Delete the file to get the defaults back.
+Settings live in `BepInEx\config\com.dev.survivallog.fullqueue.cfg`, created the first time the game starts with the mod. Change them in game on the Mod Manager's Mods screen, or edit the file while the game is closed. Changed on the Mods screen, QueueInPrologue takes effect the next time a game loads and QueueOnExpeditions from the next expedition; Enabled and ScrollQueue take effect at the next game start. Delete the file to get the defaults back.
 
 ## General
 

@@ -24,15 +24,16 @@ internal static class QueuePatch
 
     private static QueueSettings _settings = new(InPrologue: false, OnExpeditions: false);
 
-    public static void Apply(Harmony harmony, QueueSettings settings)
+    public static void Apply(Harmony harmony)
     {
-        _settings = settings;
-
         PatchKit.Patch(harmony, typeof(QueuePatch), typeof(LeadingRole), nameof(LeadingRole.Initialize), InitializeParameters,
             nameof(OpenQueue),
             "hooked LeadingRole.Initialize: orders queue up where the settings allow",
             "the game keeps one order at a time before the disaster and on expeditions");
     }
+
+    /// <summary>Called on the main thread at start and after each change; a character set up from then on follows it.</summary>
+    public static void UseSettings(QueueSettings settings) => _settings = settings;
 
     private static void OpenQueue(LeadingRole __instance, WorldStateType worldStateType)
     {
