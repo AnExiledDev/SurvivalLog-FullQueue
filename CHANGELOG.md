@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- The count of orders out of sight (such as +3) sits on the last slot of the bar again, not on the third. The game draws its HUD 1.3 times larger, and the bar now measures with that in mind, so all five slots in sight take clicks and the mouse wheel moves exactly one slot per step.
+
 ## 0.3.0
 
 - The Mods screen links this changelog.

@@ -233,6 +233,22 @@ public class QueueBarPageTests
     }
 
     [Fact]
+    public void Without_the_games_zoom_the_count_still_sits_on_the_last_whole_slot()
+    {
+        var page = PageWithScript();
+
+        page.Run("ZOOM = 1");
+        page.GameSendsOrders(8);
+
+        Assert.Equal("4:after:+3", page.Text("counts(page)"));
+        Assert.Equal(AllClickable + ",none,none,none", page.Text("slotPointerEvents(page)"));
+
+        page.Wheel(100);
+
+        Assert.True(page.Is("isScrolledByWholeSlots(page)"));
+    }
+
+    [Fact]
     public void Scrolled_to_the_end_the_first_whole_slot_shows_how_many_orders_are_out_of_sight_before_it()
     {
         var page = ScrolledToTheEnd();

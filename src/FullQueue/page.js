@@ -192,8 +192,10 @@
   // until it is wholly back in sight. The first and last whole slots carry the count of orders out of sight, or partly
   // out of sight, on their side.
   function fitSlots(bar, slots, isLong) {
-    var left = bar.getBoundingClientRect().left + bar.clientLeft;
-    var right = left + bar.clientWidth;
+    var barBox = bar.getBoundingClientRect();
+    var zoom = zoomOf(bar, barBox);
+    var left = barBox.left + bar.clientLeft * zoom;
+    var right = left + bar.clientWidth * zoom;
     var hiddenBefore = 0;
     var hiddenAfter = 0;
     var firstWhole = -1;
@@ -223,6 +225,14 @@
 
   function countText(hidden) { return hidden > 0 ? '+' + hidden : null; }
 
+  // The game zooms its whole page (1.3 on CoreUI1's body). Boxes come back in screen pixels while the bar's own widths
+  // and scroll position stay in page pixels, so every comparison between the two goes through this ratio.
+  function zoomOf(bar, barBox) {
+    var width = bar.offsetWidth;
+
+    return width > 0 && barBox.width > 0 ? barBox.width / width : 1;
+  }
+
   function setPointerEvents(slot, wanted) {
     if (slot.style.pointerEvents !== wanted) slot.style.pointerEvents = wanted;
   }
@@ -240,7 +250,7 @@
   function scrollSideways(event) {
     var bar = event.currentTarget;
     var room = bar.scrollWidth - bar.clientWidth;
-    var pitch = slotPitch(slotsIn(bar));
+    var pitch = slotPitch(bar, slotsIn(bar));
 
     if (!bar.classList.contains(LONG) || room <= 0 || pitch <= 0) return;
 
@@ -254,10 +264,12 @@
     bar.scrollLeft = wholeSlotsFrom(bar.scrollLeft, delta, pitch, room);
   }
 
-  // The distance from one slot to the next, read from the boxes: offsetLeft rounds to whole pixels and the game's slots
-  // sit 34.3px apart, so whole-slot steps built on it would drift a slot partly out of the bar.
-  function slotPitch(slots) {
-    return slots.length > 1 ? slots[1].getBoundingClientRect().left - slots[0].getBoundingClientRect().left : 0;
+  // The distance from one slot to the next in page pixels, read from the boxes: offsetLeft rounds to whole pixels and
+  // the game's slots sit 34.3px apart, so whole-slot steps built on it would drift a slot partly out of the bar.
+  function slotPitch(bar, slots) {
+    if (slots.length < 2) return 0;
+
+    return (slots[1].getBoundingClientRect().left - slots[0].getBoundingClientRect().left) / zoomOf(bar, bar.getBoundingClientRect());
   }
 
   // The wheel moves whole slots, at least one per notch, so no slot is left partly out of the bar. The bar has room

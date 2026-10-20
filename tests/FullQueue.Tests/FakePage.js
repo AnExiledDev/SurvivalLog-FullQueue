@@ -32,6 +32,10 @@ var BORDER_PX = 1;
 var BAR_LEFT_PX = 120;
 var GAME_SLOTS = 5;
 
+// CoreUI1's body zoom from the game's CSS. Boxes are in screen pixels, so they are this much larger than the page
+// pixels of widths and scroll positions.
+var ZOOM = 1.3;
+
 var FakeElement = class {
   constructor(tagName, className) {
     var element = this;
@@ -129,7 +133,9 @@ var FakeBar = class extends FakeElement {
     return 2 * PAD_PX + rowWidth(shown);
   }
 
-  getBoundingClientRect() { return { left: BAR_LEFT_PX, right: BAR_LEFT_PX + this.clientWidth + 2 * BORDER_PX }; }
+  get offsetWidth() { return this.clientWidth + 2 * BORDER_PX; }
+
+  getBoundingClientRect() { return screenBox(BAR_LEFT_PX, this.offsetWidth); }
 };
 
 // One .queue-slot, drawn for the order at its index in the page's list.
@@ -154,9 +160,12 @@ var FakeSlot = class extends FakeElement {
     var bar = this.parentElement;
     var left = BAR_LEFT_PX + BORDER_PX + PAD_PX + bar.slots.indexOf(this) * (SLOT_PX + GAP_PX) - bar.scrollLeft;
 
-    return { left: left, right: left + SLOT_PX };
+    return screenBox(left, SLOT_PX);
   }
 };
+
+// A box at this page position and width, as the browser reports it: in screen pixels.
+function screenBox(left, width) { return { left: left * ZOOM, right: (left + width) * ZOOM, width: width * ZOOM }; }
 
 function rowWidth(slots) { return slots > 0 ? slots * SLOT_PX + (slots - 1) * GAP_PX : 0; }
 
@@ -359,8 +368,8 @@ function isScrolledByWholeSlots(page) {
 // on, clipped or not, and the world gets no click inside any of them. Lists the slots whose box it would collect past
 // the bar's visible inside, such as "2,7".
 function strayClickAreas(page) {
-  var left = page.bar.getBoundingClientRect().left + page.bar.clientLeft;
-  var right = left + page.bar.clientWidth;
+  var left = page.bar.getBoundingClientRect().left + page.bar.clientLeft * ZOOM;
+  var right = left + page.bar.clientWidth * ZOOM;
 
   return page.bar.slots
     .map(function (slot, index) {
