@@ -1,5 +1,5 @@
 Name: Full Queue
-Summary: Queue up several orders in the countdown at the start of a game and on expeditions, the same way you can at home, instead of one at a time. 开局的灾变倒计时和外出探索中也能像在家一样连续下达多个操作排进队列，不再一次只能一个。
+Summary: Queue up orders in the countdown before the disaster and on expeditions, the same way you can at home. There the game throws away your waiting orders every time you give a new one. The queue bar also shows every waiting order instead of stopping at 5, and scrolls with the mouse wheel. Each place can be switched off on its own.
 
 Description (BBCode):
 At home, Survival Log lets you line up orders: walk there, pick that up, cook this. In the countdown before the disaster and on expeditions it only keeps one, and every new order throws away the ones still waiting. Full Queue lets your orders queue up there too, so a new order joins the end of the queue like it does at home.
@@ -25,7 +25,7 @@ Works in English and Chinese.
 
 [size=5]Requirements[/size]
 [list]
-[*]Survival Log 1.1.18902. A game update can break it until the mod is updated.[/*]
+[*]Survival Log 1.1.19131. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url] (BepInEx 6.0.0-be.788, IL2CPP). Install it first.[/*]
 [*]Optional: Exiled's Toolkit 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.[/*]
 [/list]
@@ -79,7 +79,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 
 [size=5]前置要求[/size]
 [list]
-[*]Survival Log 1.1.18902。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
+[*]Survival Log 1.1.19131。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]（BepInEx 6.0.0-be.788，IL2CPP），请先安装。[/*]
 [*]可选：Exiled's Toolkit 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面改动的设置无需重启游戏即可生效；没装的话，改动在下次启动游戏时生效。[/*]
 [/list]
