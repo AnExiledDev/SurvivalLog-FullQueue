@@ -41,7 +41,7 @@
     <AssemblyMetadata Include="ModManager.Description" Value="Queue up several orders in the countdown at the start of a game and on expeditions, the same way you can at home, instead of one at a time.&#10;开局的灾变倒计时和外出探索中也能像在家一样连续下达多个操作排进队列，不再一次只能一个。" />
     <AssemblyMetadata Include="ModManager.Author" Value="AnExiledDev" />
     <AssemblyMetadata Include="ModManager.Category" Value="QualityOfLife" />
-    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19131" />
+    <AssemblyMetadata Include="ModManager.GameVersion" Value="1.1.19611" />
     <AssemblyMetadata Include="ModManager.Settings" Value="Restart" />
     <AssemblyMetadata Include="ModManager.NexusId" Value="32" />
     <AssemblyMetadata Include="ModManager.GitHub" Value="AnExiledDev/SurvivalLog-FullQueue" />
