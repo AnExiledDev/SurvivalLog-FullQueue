@@ -293,7 +293,8 @@ public class QueueBarPageTests
         page.Poll();
 
         Assert.Equal(1.0, page.Number("intervals.length"));
-        Assert.Equal(2.0, page.Number("page.windowListeners.length"));
+        Assert.Equal(2.0, page.Number("listenersOf(page, 'message').length"));
+        Assert.Equal(1.0, page.Number("listenersOf(page, 'resize').length"));
     }
 
     [Fact]

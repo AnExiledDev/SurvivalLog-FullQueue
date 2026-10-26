@@ -5,13 +5,19 @@
 // and the first and last whole slots in sight show how many orders are out of sight on their side. Slots not wholly
 // in sight stop taking clicks, so they cannot block clicks on the world behind them. A CoreUI1 page that loads while
 // more than five wait gets the whole queue back from the last update. With five or fewer the bar is left exactly as
-// the game draws it. Sent again by the plugin every couple of seconds; the guard below makes a second copy return at once.
+// the game draws it. The plugin asks every couple of seconds whether the script still runs and sends it only when it
+// does not; the guard below makes a second copy return at once all the same.
 (function () {
   if (window.__slfullqueue) return;
 
   window.__slfullqueue = true;
 
-  var POLL_MS = 200;
+  var POLL_MS = 250;
+
+  // Polls after an update, a load or a resize that measure the bar again whatever it shows: the slots' appear pulse
+  // and transitions move them for up to 0.4 s after the page draws them.
+  var SETTLE_POLLS = 4;
+  var CORE_PAGE = /CoreUI1\.html/;
   var STYLE_ID = 'slfq-style';
   var GAME_SLOTS = 5;
   var UPDATE = 'WebUI_CoreUI1_ActionMsg';
@@ -50,13 +56,22 @@
     } catch (e) {}
   }
 
+  // Kept on the document, so a poll looks it up only when the page lost it.
   function addStyle(doc) {
-    if (doc.getElementById(STYLE_ID) || !doc.head) return;
+    if (doc.__slfqStyle && doc.__slfqStyle.isConnected) return;
 
-    var style = doc.createElement('style');
-    style.id = STYLE_ID;
-    style.textContent = CSS;
-    doc.head.appendChild(style);
+    var style = doc.getElementById(STYLE_ID);
+
+    if (!style) {
+      if (!doc.head) return;
+
+      style = doc.createElement('style');
+      style.id = STYLE_ID;
+      style.textContent = CSS;
+      doc.head.appendChild(style);
+    }
+
+    doc.__slfqStyle = style;
   }
 
   // ===== The orders past the fifth =====
@@ -76,10 +91,24 @@
         diag('queue update', e);
       }
     }, true);
+
+    // A new window size moves the bar and can change the game's zoom, which no update tells the page.
+    page.addEventListener('resize', function () {
+      try {
+        var bar = barOf(page.document);
+
+        if (bar) bar.__slfqSettle = SETTLE_POLLS;
+      } catch (e) {
+        diag('queue bar', e);
+      }
+    });
   }
 
   function takeUpdate(page, message) {
     if (!message || message.type !== UPDATE) return;
+
+    // An update without the queue, such as one for the current order only, is not even parsed.
+    if (typeof message.data === 'string' && message.data.indexOf('queueJson') < 0) return;
 
     var data = typeof message.data === 'string' && message.data ? page.JSON.parse(message.data) : message.data;
 
@@ -103,13 +132,20 @@
   // A page that loads after the last long update holds the game's cut of it until the queue next changes, since the
   // poll only starts listening a moment after the page loads. While the page shows exactly the first five of the last
   // long queue, that queue is put back. Any update of five or fewer forgets the long queue, so a real shorter queue is
-  // never replaced by an old one.
-  function restoreQueue(page) {
-    if (!lastLongQueue) return;
+  // never replaced by an old one. Checked once per page: from then on the script hears every update itself. A page
+  // whose state cannot be read yet is checked again at the next poll.
+  function restoreQueue(page, doc) {
+    if (!lastLongQueue) {
+      doc.__slfqChecked = true;
+
+      return;
+    }
 
     try {
       var state = page.eval('state');
       var shown = state.queueList;
+
+      doc.__slfqChecked = true;
 
       if (!shown || shown.length !== GAME_SLOTS || !isCutOf(shown, lastLongQueue)) return;
 
@@ -132,12 +168,21 @@
     return !!a && !!b && a.parentId === b.parentId && a.name === b.name && a.icon === b.icon;
   }
 
+  // One frame however many updates come before it. The polls after it measure the bar again while its slots settle.
   function fitOnNextFrame(page) {
-    page.requestAnimationFrame(function () {
-      try {
-        var bar = page.document.querySelector(BAR);
+    if (page.__slfqFitting) return;
 
-        if (bar) fitBar(bar);
+    page.__slfqFitting = true;
+    page.requestAnimationFrame(function () {
+      page.__slfqFitting = false;
+
+      try {
+        var bar = barOf(page.document);
+
+        if (!bar) return;
+
+        fitBar(bar);
+        bar.__slfqSettle = SETTLE_POLLS;
       } catch (e) {
         diag('queue bar', e);
       }
@@ -157,6 +202,30 @@
 
   // ===== The bar =====
 
+  // Kept on the document, so a poll looks the bar up only when the page drew a new one.
+  function barOf(doc) {
+    if (doc.__slfqBar && doc.__slfqBar.isConnected) return doc.__slfqBar;
+
+    doc.__slfqBar = doc.querySelector(BAR);
+
+    return doc.__slfqBar;
+  }
+
+  // A poll measures the bar only while it settles or once its slots or its long state changed under it. Updates,
+  // scrolls and resizes start their own fit, so a bar that stays as it is costs a poll no layout read.
+  function fitIfStale(bar) {
+    if (bar.__slfqSettle > 0) bar.__slfqSettle--;
+    else if (!hasChanged(bar)) return;
+
+    fitBar(bar);
+  }
+
+  function hasChanged(bar) {
+    return bar.__slfqChildren !== bar.children.length ||
+      bar.classList.contains(LONG) !== bar.__slfqLong ||
+      (bar.__slfqLong && !bar.hasAttribute('data-interactive'));
+  }
+
   function fitBar(bar) {
     if (!bar.__slfq) {
       bar.__slfq = true;
@@ -174,7 +243,20 @@
     if (isLong && !bar.hasAttribute('data-interactive')) bar.setAttribute('data-interactive', '');
     if (!isLong && bar.hasAttribute('data-interactive')) bar.removeAttribute('data-interactive');
 
-    fitSlots(bar, slots, isLong);
+    if (isLong) fitSlots(bar, slots);
+    else showAllSlots(slots);
+
+    bar.__slfqChildren = bar.children.length;
+    bar.__slfqLong = isLong;
+  }
+
+  // Every slot of a bar of five or fewer is in sight, so it takes clicks and shows no count, with no box measured.
+  function showAllSlots(slots) {
+    for (var i = 0; i < slots.length; i++) {
+      setPointerEvents(slots[i], '');
+      mark(slots[i], BEFORE, null);
+      mark(slots[i], AFTER, null);
+    }
   }
 
   function slotsIn(bar) {
@@ -191,7 +273,7 @@
   // the bar would swallow clicks on the world past its edge. Turning its pointer events off takes it out of that list
   // until it is wholly back in sight. The first and last whole slots carry the count of orders out of sight, or partly
   // out of sight, on their side.
-  function fitSlots(bar, slots, isLong) {
+  function fitSlots(bar, slots) {
     var barBox = bar.getBoundingClientRect();
     var zoom = zoomOf(bar, barBox);
     var left = barBox.left + bar.clientLeft * zoom;
@@ -203,7 +285,7 @@
 
     for (var i = 0; i < slots.length; i++) {
       var box = slots[i].getBoundingClientRect();
-      var isWhole = !isLong || (box.left >= left - EDGE_PX && box.right <= right + EDGE_PX);
+      var isWhole = box.left >= left - EDGE_PX && box.right <= right + EDGE_PX;
 
       setPointerEvents(slots[i], isWhole ? '' : 'none');
 
@@ -308,18 +390,29 @@
 
   // ===== Finding the page =====
 
-  // The game's pages are same-origin iframes of this document, created and dropped whenever the game likes.
+  // The game's pages are same-origin iframes of this document, created, dropped and loaded with another page whenever
+  // the game likes. The list is the browser's live one, so a poll reads it without a search.
+  var frames = document.getElementsByTagName('iframe');
+
+  // The frame CoreUI1 was last found in, kept while it stays in the document and holds CoreUI1.
+  var coreFrame = null;
+
   function patchPages() {
-    var frames = document.querySelectorAll('iframe');
-
-    for (var i = 0; i < frames.length; i++) {
-      var src = frames[i].src || '';
-
-      if (/CoreUI1\.html/.test(src)) patchFrame(frames[i], src);
-    }
+    if (!coreFrame || !coreFrame.isConnected) coreFrame = findCoreFrame();
+    if (coreFrame) patchFrame(coreFrame);
   }
 
-  function patchFrame(frame, src) {
+  function findCoreFrame() {
+    for (var i = 0; i < frames.length; i++) {
+      var frame = frames.item(i);
+
+      if (CORE_PAGE.test(frame.src || '')) return frame;
+    }
+
+    return null;
+  }
+
+  function patchFrame(frame) {
     var page = null;
     var doc = null;
 
@@ -328,17 +421,28 @@
       doc = frame.contentDocument;
     } catch (e) {}
 
-    if (!page || !doc) return diag('page access', 'cannot reach ' + src);
+    if (!page || !doc) return diag('page access', 'cannot reach ' + (frame.src || 'CoreUI1'));
     if (doc.readyState === 'loading') return;
 
     try {
-      listen(page);
+      // A page the script has not met yet: the frame may have been loaded with another page since.
+      if (!page.__slfq) {
+        if (!CORE_PAGE.test(frame.src || '')) {
+          coreFrame = null;
+
+          return;
+        }
+
+        listen(page);
+      }
+
       addStyle(doc);
-      restoreQueue(page);
 
-      var bar = doc.querySelector(BAR);
+      if (!doc.__slfqChecked) restoreQueue(page, doc);
 
-      if (bar) fitBar(bar);
+      var bar = barOf(doc);
+
+      if (bar) fitIfStale(bar);
     } catch (e) {
       diag('CoreUI1', e);
     }

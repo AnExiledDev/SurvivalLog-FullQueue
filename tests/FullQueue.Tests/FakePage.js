@@ -9,6 +9,21 @@ var window = this;
 var warnings = [];
 var console = { warn: function (text) { warnings.push(String(text)); } };
 
+// What the script costs the browser, counted across every page: element searches (querySelector,
+// querySelectorAll, getElementById), box reads that make the browser lay the page out, and looks at an iframe in the
+// root page's frame list. The page itself counts its evals and JSON parses. resetCounts() zeroes them all.
+var searches = 0;
+var layoutReads = 0;
+var frameLooks = 0;
+
+function resetCounts(page) {
+  searches = 0;
+  layoutReads = 0;
+  frameLooks = 0;
+  page.evals = 0;
+  page.parses = 0;
+}
+
 var intervals = [];
 
 function setInterval(callback) {
@@ -66,6 +81,15 @@ var FakeElement = class {
 
   get className() { return this.classes.join(' '); }
 
+  // In a document: its topmost ancestor is that document's root element.
+  get isConnected() {
+    var top = this;
+
+    while (top.parentElement) top = top.parentElement;
+
+    return !!top.ownerDocument && top === top.ownerDocument.documentElement;
+  }
+
   hasAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attrs, name); }
 
   getAttribute(name) { return this.hasAttribute(name) ? this.attrs[name] : null; }
@@ -102,13 +126,23 @@ var FakeElement = class {
     return event;
   }
 
-  getBoundingClientRect() { return { left: 0, right: 0 }; }
+  getBoundingClientRect() {
+    layoutReads++;
 
-  querySelectorAll(selector) {
-    return descendantsOf(this).filter(function (element) { return matches(element, selector); });
+    return { left: 0, right: 0 };
   }
 
-  querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+  querySelectorAll(selector) {
+    searches++;
+
+    return findAll(this, selector);
+  }
+
+  querySelector(selector) {
+    searches++;
+
+    return findAll(this, selector)[0] || null;
+  }
 };
 
 // The game's .queue-container. Its width follows its slots; with the mod's long class and style it stops at five.
@@ -122,7 +156,7 @@ var FakeBar = class extends FakeElement {
   get slots() { return this.children.filter(function (child) { return child.classList.contains('queue-slot'); }); }
 
   get isCapped() {
-    return this.classList.contains('slfq-long') && !!this.ownerDocument && this.ownerDocument.getElementById('slfq-style') !== null;
+    return this.classList.contains('slfq-long') && !!this.ownerDocument && findById(this.ownerDocument, 'slfq-style') !== null;
   }
 
   get scrollWidth() { return 2 * PAD_PX + rowWidth(this.slots.length); }
@@ -135,7 +169,11 @@ var FakeBar = class extends FakeElement {
 
   get offsetWidth() { return this.clientWidth + 2 * BORDER_PX; }
 
-  getBoundingClientRect() { return screenBox(BAR_LEFT_PX, this.offsetWidth); }
+  getBoundingClientRect() {
+    layoutReads++;
+
+    return screenBox(BAR_LEFT_PX, this.offsetWidth);
+  }
 };
 
 // One .queue-slot, drawn for the order at its index in the page's list.
@@ -160,6 +198,8 @@ var FakeSlot = class extends FakeElement {
     var bar = this.parentElement;
     var left = BAR_LEFT_PX + BORDER_PX + PAD_PX + bar.slots.indexOf(this) * (SLOT_PX + GAP_PX) - bar.scrollLeft;
 
+    layoutReads++;
+
     return screenBox(left, SLOT_PX);
   }
 };
@@ -176,6 +216,15 @@ function matches(element, selector) {
   if (/^[a-z]+$/.test(selector)) return element.tagName === selector;
 
   throw new Error('the fake page does not know the selector "' + selector + '"');
+}
+
+// The fake's own lookups, not counted as the script's searches.
+function findAll(root, selector) {
+  return descendantsOf(root).filter(function (element) { return matches(element, selector); });
+}
+
+function findById(doc, id) {
+  return descendantsOf(doc.documentElement).filter(function (element) { return element.id === id; })[0] || null;
 }
 
 function descendantsOf(root) {
@@ -196,9 +245,25 @@ function makeDocument() {
     defaultView: null,
     documentElement: root,
     createElement: function (tagName) { return new FakeElement(tagName); },
-    getElementById: function (id) { return descendantsOf(root).filter(function (element) { return element.id === id; })[0] || null; },
+    getElementById: function (id) {
+      searches++;
+
+      return findById(doc, id);
+    },
     querySelector: function (selector) { return root.querySelector(selector); },
-    querySelectorAll: function (selector) { return root.querySelectorAll(selector); }
+    querySelectorAll: function (selector) { return root.querySelectorAll(selector); },
+
+    // The browser's live list: it always holds the elements in the document now.
+    getElementsByTagName: function (tagName) {
+      return {
+        get length() { return findAll(root, tagName).length; },
+        item: function (index) {
+          frameLooks++;
+
+          return findAll(root, tagName)[index] || null;
+        }
+      };
+    }
   };
 
   root.ownerDocument = doc;
@@ -218,7 +283,16 @@ function openCoreUI1() {
   var doc = makeDocument();
   var page = {
     document: doc,
-    JSON: JSON,
+    JSON: {
+      parse: function (text) {
+        page.parses++;
+
+        return JSON.parse(text);
+      },
+      stringify: function (value) { return JSON.stringify(value); }
+    },
+    evals: 0,
+    parses: 0,
     state: { queueList: [], currentAction: { name: '' } },
     capturesFirst: true,
     windowListeners: [],
@@ -234,6 +308,8 @@ function openCoreUI1() {
       return page.frames.length;
     },
     eval: function (name) {
+      page.evals++;
+
       if (name === 'state') return page.state;
 
       throw new ReferenceError(name + ' is not defined');
@@ -297,6 +373,15 @@ function gameSends(page, update) {
 }
 
 function sendQueue(page, queueText) { gameSends(page, { queueJson: queueText }); }
+
+function listenersOf(page, type) {
+  return page.windowListeners.filter(function (entry) { return entry.type === type; });
+}
+
+// The browser window changing size, which moves the bar without any update from the game.
+function resize(page) {
+  listenersOf(page, 'resize').forEach(function (entry) { entry.listener.call(page, {}); });
+}
 
 // Vue keys the slots by index: a slot element stays while its index does and is drawn with whatever order is there now.
 // slotsMade counts the slot elements made, since a new one plays the game's appear animation.

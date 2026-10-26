@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+- The game runs smoother with the queue bar. The mod no longer sends its queue bar code to the game's screen again every couple of seconds, and the queue bar is only measured again when it changes.
+- Order names and icons past the fifth are read once per language instead of on every change to the queue.
+- The mod's log file is written in the background, so it never holds up a frame.
+- Made for Survival Log 1.1.19611.
+
 ## 0.3.1
 
 - Fixed: the count of orders out of sight (such as +3) is back on the last slot of the queue bar instead of the third.

@@ -4,6 +4,7 @@ using FullQueue.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
+using ActionTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Action>;
 
 namespace FullQueue.Adapters;
 
@@ -13,7 +14,9 @@ namespace FullQueue.Adapters;
 /// only the first five into the bar's text, so the page never learns the parent id of a later order and cannot show
 /// or cancel it. The hook runs after the game writes the text and, when more than five orders wait, adds the rest
 /// with the game's own rules: the action's icon and translated name, cancellable, and the game's mark for an order it
-/// counts as automatic. With five or fewer the game's text stays as it is. Static because Harmony hooks are.
+/// counts as automatic. With five or fewer the game's text stays as it is. Each action's icon and name are read from
+/// the game once per action table and language, and the text is built again only when the queue changed. Static
+/// because Harmony hooks are; it only runs on the game's main thread.
 /// </summary>
 internal static class QueueBarPatch
 {
@@ -22,7 +25,20 @@ internal static class QueueBarPatch
     /// <summary>The ActionSourceType the game marks as automatic in the bar; its first five are read the same way.</summary>
     private const int AutoSource = 1;
 
+    /// <summary>The hook and the methods it calls, so a warm-up can compile them before the first long queue.</summary>
+    internal static readonly string[] Methods = { nameof(ShowEveryOrder), nameof(UseTablesOf), nameof(ReadPastGameSlots), nameof(TextOf) };
+
     private static readonly Type[] UpdateParameters = { typeof(Ac_CoreUI1_UpdateActionList), typeof(State_Web_CoreUI1) };
+    private static readonly QueueSlot Blank = new QueueSlot.Blank();
+    private static readonly ActionTexts Texts = new();
+    private static readonly BarTextMemo BarText = new();
+    private static readonly List<QueueSlot> PastGameSlots = new();
+
+    /// <summary>
+    /// The action table and text table the kept texts came from. Held so a new table cannot take the address of one
+    /// the cache is keyed on.
+    /// </summary>
+    private static readonly object?[] TablesRead = new object?[2];
 
     private static bool _hasReportedOddText;
 
@@ -38,20 +54,21 @@ internal static class QueueBarPatch
         {
             if (ac == null || state == null) return;
 
-            var actionIds = ac.ActionIdList;
+            var actionIds = ac._ActionIdList_k__BackingField;
+            var orderCount = actionIds?.Count ?? 0;
 
-            if (actionIds == null || !QueueBar.HasOrdersPastGameSlots(actionIds.Count)) return;
+            if (actionIds == null || !QueueBar.HasOrdersPastGameSlots(orderCount)) return;
 
-            var barText = state.ActionQueueJson;
+            var barText = state._ActionQueueJson_k__BackingField;
             var config = GameSingleton.Existing<ConfigManager>();
+            var actions = config?._Config_Action_Dict;
 
-            if (barText == null || config == null) return;
+            if (barText == null || config == null || actions == null) return;
 
-            var pastGameSlots = new List<QueueSlot>(actionIds.Count - QueueBar.GameSlots);
+            UseTablesOf(config, actions);
+            ReadPastGameSlots(ac, actionIds, actions, orderCount);
 
-            for (var i = QueueBar.GameSlots; i < actionIds.Count; i++) pastGameSlots.Add(ReadSlot(ac, config, i));
-
-            var text = QueueBar.Extend(barText.Value, pastGameSlots);
+            var text = BarText.Extend(barText.Value, PastGameSlots);
 
             if (text != null) barText.Value = text;
             else ReportOddText();
@@ -62,22 +79,62 @@ internal static class QueueBarPatch
         }
     }
 
-    /// <summary>Read the way the game reads its first five: an action it cannot look up is an empty slot.</summary>
-    private static QueueSlot ReadSlot(Ac_CoreUI1_UpdateActionList ac, ConfigManager config, int index)
+    /// <summary>A reloaded action table or a change of language drops every kept text.</summary>
+    private static void UseTablesOf(ConfigManager config, ActionTable actions)
     {
-        var actionId = ac.ActionIdList[index];
-        var action = actionId > 0 ? config.Get_Config_Action(actionId) : null;
+        var cache = config._customCache_k__BackingField;
+        var texts = cache?._LanguageMap_k__BackingField;
+        var key = new TableKey(
+            actions.Pointer.ToInt64(), actions.Count,
+            texts?.Pointer.ToInt64() ?? 0, texts?.Count ?? 0,
+            cache == null ? -1 : (int)cache._LanguageType_k__BackingField);
 
-        if (action == null) return new QueueSlot.Blank();
+        if (!Texts.Use(key)) return;
 
-        var sources = ac.SourceTypeList;
-        var parents = ac.ParentIdList;
+        TablesRead[0] = actions;
+        TablesRead[1] = texts;
+    }
 
-        return new QueueSlot.Order(
-            Icon: action.WebIcon ?? "",
-            Name: ConstantTextTools.GetLocalText(action.Name) ?? "",
-            IsAuto: sources != null && index < sources.Count && (int)sources[index] == AutoSource,
-            ParentId: parents != null && index < parents.Count ? parents[index] : 0);
+    private static void ReadPastGameSlots(Ac_CoreUI1_UpdateActionList ac, Il2CppSystem.Collections.Generic.List<int> actionIds, ActionTable actions, int orderCount)
+    {
+        var sources = ac._SourceTypeList_k__BackingField;
+        var parents = ac._ParentIdList_k__BackingField;
+        var sourceCount = sources?.Count ?? 0;
+        var parentCount = parents?.Count ?? 0;
+
+        PastGameSlots.Clear();
+
+        for (var i = QueueBar.GameSlots; i < orderCount; i++)
+        {
+            var text = TextOf(actions, actionIds[i]);
+
+            PastGameSlots.Add(text == null
+                ? Blank
+                : new QueueSlot.Order(
+                    Icon: text.Icon,
+                    Name: text.Name,
+                    IsAuto: i < sourceCount && (int)sources![i] == AutoSource,
+                    ParentId: i < parentCount ? parents![i] : 0));
+        }
+    }
+
+    /// <summary>
+    /// Read the way the game reads its first five: an action it cannot look up is an empty slot. Looked up in the table
+    /// itself, since the game's getter writes an error to the log for every id it cannot find.
+    /// </summary>
+    private static ActionText? TextOf(ActionTable actions, int actionId)
+    {
+        if (actionId <= 0) return null;
+
+        if (Texts.TryGet(actionId, out var known)) return known;
+
+        var text = actions.TryGetValue(actionId, out var action) && action != null
+            ? new ActionText(action._WebIcon_k__BackingField ?? "", ConstantTextTools.GetLocalText(action._Name_k__BackingField) ?? "")
+            : null;
+
+        Texts.Keep(actionId, text);
+
+        return text;
     }
 
     private static void ReportOddText()

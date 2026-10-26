@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using FullQueue.Core;
 using GameCore.HotUpdate.ReduxUI;
 
 namespace FullQueue.Adapters;
@@ -7,37 +8,59 @@ namespace FullQueue.Adapters;
 /// <summary>
 /// The mod's half that lives in the game's web UI: page.js, run in the root document the game's own pages sit in. It
 /// gives the queue bar the orders past the fifth and lets it scroll. The web view can reload at any time and lose the
-/// script, so the script is sent again every couple of seconds; it returns at once when it is already running.
+/// script, so every couple of seconds a probe of a few bytes asks the page whether the script still runs, and the
+/// script is sent only when it does not (<see cref="ScriptKeeper"/>).
 /// </summary>
 internal sealed class WebPage
 {
-    private const float CheckSeconds = 2f;
     private const string ScriptResource = "FullQueue.page.js";
 
+    /// <summary>The adapter's methods on the per-frame path, so a warm-up can compile them before the first frame.</summary>
+    internal static readonly string[] Methods = { nameof(KeepInstalled), nameof(Install), nameof(Run) };
+
     private readonly Action<string> _log;
+    private readonly ScriptKeeper _keeper;
+
+    /// <summary>Made once: a callback made per probe would be a new game object every couple of seconds.</summary>
+    private readonly Il2CppSystem.Action<string> _onProbeReply;
+
     private string? _script;
-    private float _nextCheckAt;
     private bool _hasReportedInstall;
     private bool _hasReportedRunFailure;
 
-    public WebPage(Action<string> log)
+    public WebPage(Action<string> log, long nowMs)
     {
         _log = log;
+        _keeper = new ScriptKeeper(nowMs);
+        _onProbeReply = (Action<string>)_keeper.TakeReply;
     }
 
-    public void KeepInstalled(float now)
+    public void KeepInstalled(long nowMs)
     {
-        if (now < _nextCheckAt) return;
+        switch (_keeper.Tick(nowMs))
+        {
+            case ScriptStep.Wait:
+                return;
+            case ScriptStep.Probe:
+                if (Run(ScriptKeeper.ProbeScript, _onProbeReply)) _keeper.ProbeSent();
 
-        _nextCheckAt = now + CheckSeconds;
+                return;
+            case ScriptStep.Install:
+                Install();
 
-        if (!Run(Script()) || _hasReportedInstall) return;
+                return;
+        }
+    }
+
+    private void Install()
+    {
+        if (!Run(Script(), null) || _hasReportedInstall) return;
 
         _hasReportedInstall = true;
         _log("page script sent to the web UI");
     }
 
-    private bool Run(string javaScript)
+    private bool Run(string javaScript, Il2CppSystem.Action<string>? onReply)
     {
         var webView = GameSingleton.Existing<ReduxUISystem>()?.GetWebUILayer()?.canvasWebViewPrefab?.WebView;
 
@@ -45,7 +68,7 @@ internal sealed class WebPage
 
         try
         {
-            webView.ExecuteJavaScript(javaScript, null);
+            webView.ExecuteJavaScript(javaScript, onReply);
 
             return true;
         }

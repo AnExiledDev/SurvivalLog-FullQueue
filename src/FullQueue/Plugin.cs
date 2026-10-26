@@ -1,4 +1,8 @@
+using System;
 using System.IO;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
@@ -13,7 +17,7 @@ namespace FullQueue;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.fullqueue";
-    private const string Version = "0.3.1";
+    private const string Version = "0.3.2";
 
     public override void Load()
     {
@@ -34,7 +38,6 @@ public sealed class Plugin : BasePlugin
         var log = new FullQueueLog(Log, Path.Combine(Paths.BepInExRootPath, "full-queue.log"));
 
         PatchKit.Log = log.Write;
-        log.TrimIfLarge();
         log.Write($"===== Full Queue {Version} started: {OnOff(isEnabled)}, countdown before the disaster {OnOff(inPrologue.Value)}, expeditions {OnOff(onExpeditions.Value)}, queue bar shows every order {OnOff(scrollQueue)}");
 
         if (!isEnabled) return;
@@ -52,9 +55,55 @@ public sealed class Plugin : BasePlugin
         // Without the hook the bar's text holds five orders, so the page script would have nothing to add.
         if (!scrollQueue || !QueueBarPatch.Apply(harmony)) return;
 
-        PageTicker.Page = new WebPage(log.Write);
+        PageTicker.Page = new WebPage(log.Write, Environment.TickCount64);
         AddComponent<PageTicker>();
+        WarmUpInBackground(log.WriteFileOnly);
     }
 
     private static string OnOff(bool isOn) => isOn ? "on" : "off";
+
+    /// <summary>
+    /// Compiles the queue bar hook and the page keeper on a worker before they first run, so the first long queue and
+    /// the first page check do not stall a frame on it.
+    /// </summary>
+    private static void WarmUpInBackground(Action<string> fileLog) =>
+        Task.Run(() =>
+        {
+            try
+            {
+                Prepare(typeof(QueueBarPatch), QueueBarPatch.Methods);
+                Prepare(typeof(WebPage), WebPage.Methods);
+                RunCoreOnce();
+            }
+            catch (Exception ex)
+            {
+                fileLog("warm-up failed, the first long queue may take a moment longer: " + ex.Message);
+            }
+        });
+
+    private static void Prepare(Type type, string[] names)
+    {
+        foreach (var name in names)
+        {
+            var method = type.GetMethod(name, BindingFlags.Static | BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                         ?? throw new MissingMethodException(type.Name, name);
+
+            RuntimeHelpers.PrepareMethod(method.MethodHandle);
+        }
+    }
+
+    /// <summary>Plain code on throwaway data, which also loads the types and their statics the hook uses.</summary>
+    private static void RunCoreOnce()
+    {
+        var slots = new QueueSlot[] { new QueueSlot.Order("icon", "name", IsAuto: false, ParentId: 1), new QueueSlot.Blank() };
+        var texts = new ActionTexts();
+        var keeper = new ScriptKeeper(0);
+
+        new BarTextMemo().Extend("[{\"icon\":\"\"}]", slots);
+        texts.Use(new TableKey(1, 1, 1, 1, 0));
+        texts.Keep(1, new ActionText("icon", "name"));
+        texts.TryGet(1, out _);
+        keeper.TakeReply(ScriptKeeper.ProbeScript);
+        keeper.Tick(ScriptKeeper.FirstCheckMs);
+    }
 }

@@ -25,10 +25,10 @@ internal sealed class PageScript
     /// <summary>The game dropping CoreUI1 and loading it again; the script finds the new page at its next poll.</summary>
     public void ReloadPage() => Run("closeCoreUI1(page); page = openCoreUI1();");
 
-    /// <summary>The plugin sending the script again, as it does every couple of seconds.</summary>
+    /// <summary>The plugin sending the script again, as it does when its probes go unanswered.</summary>
     public void SendScriptAgain() => _engine.Execute(Resource("FullQueue.page.js"));
 
-    /// <summary>One run of the script's 200 ms poll.</summary>
+    /// <summary>One run of the script's 250 ms poll.</summary>
     public void Poll() => Run("poll()");
 
     public void NextFrame() => Run("nextFrame(page)");
