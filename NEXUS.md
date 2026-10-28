@@ -2,6 +2,8 @@ Name: Full Queue
 Summary: Queue up orders in the countdown before the disaster and on expeditions, the same way you can at home. There the game throws away your waiting orders every time you give a new one. The queue bar also shows every waiting order instead of stopping at 5, and scrolls with the mouse wheel. Each place can be switched off on its own.
 
 Description (BBCode):
+[center][img]https://sldb.core-directive.com/media/save/1-save-safe.png[/img][/center]
+
 At home, Survival Log lets you line up orders: walk there, pick that up, cook this. In the countdown before the disaster and on expeditions it only keeps one, and every new order throws away the ones still waiting. Full Queue lets your orders queue up there too, so a new order joins the end of the queue like it does at home.
 
 [size=5]Main features[/size]
