@@ -17,7 +17,7 @@ namespace FullQueue;
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.fullqueue";
-    private const string Version = "0.3.2";
+    private const string Version = "0.4.0";
 
     public override void Load()
     {
@@ -33,8 +33,8 @@ public sealed class Plugin : BasePlugin
             new ConfigDescription("When true (the default), you can queue several orders on expeditions. When false, each new order there replaces the ones still waiting, as in the game. A change takes effect from the next expedition.\n" +
             "为 true（默认）时，外出探索中可以连续下达多个操作排进队列。为 false 时保持游戏原样：新下达的操作会替换掉还在等待的操作。改动从下一次外出探索起生效。", null, "ModManager.ShowWhen=Enabled"));
         var scrollQueue = Config.Bind("General", "ScrollQueue", true, new ConfigDescription(
-            "When true (the default), the queue bar at the bottom of the screen shows every waiting order, and with more than 5 it keeps its size and scrolls with the mouse wheel. When false, the bar shows only the first 5, as in the game. Takes effect at the next game start.\n" +
-            "为 true（默认）时，画面下方的队列栏会显示所有等待中的操作；超过 5 个时队列栏大小不变，可用鼠标滚轮滚动查看。为 false 时保持游戏原样，只显示前 5 个。下次启动游戏时生效。", null, "ModManager.Restart", "ModManager.ShowWhen=Enabled")).Value;
+            "When true (the default), the queue bar at the bottom of the screen shows every waiting order, and with more than 5 it keeps its size and scrolls with the mouse wheel. In the countdown before the disaster, where the game shows no queue bar, the mod adds one in the bottom left corner. When false, the bar shows only the first 5 and the countdown has no queue bar, as in the game. Takes effect at the next game start.\n" +
+            "为 true（默认）时，画面下方的队列栏会显示所有等待中的操作；超过 5 个时队列栏大小不变，可用鼠标滚轮滚动查看。灾变前的倒计时中游戏不显示队列栏，模组会在左下角加上一个。为 false 时保持游戏原样，只显示前 5 个，倒计时中也没有队列栏。下次启动游戏时生效。", null, "ModManager.Restart", "ModManager.ShowWhen=Enabled")).Value;
         var log = new FullQueueLog(Log, Path.Combine(Paths.BepInExRootPath, "full-queue.log"));
 
         PatchKit.Log = log.Write;
@@ -55,6 +55,7 @@ public sealed class Plugin : BasePlugin
         // Without the hook the bar's text holds five orders, so the page script would have nothing to add.
         if (!scrollQueue || !QueueBarPatch.Apply(harmony)) return;
 
+        CountdownBar.Apply(harmony);
         PageTicker.Page = new WebPage(log.Write, Environment.TickCount64);
         AddComponent<PageTicker>();
         WarmUpInBackground(log.WriteFileOnly);
@@ -73,6 +74,7 @@ public sealed class Plugin : BasePlugin
             {
                 Prepare(typeof(QueueBarPatch), QueueBarPatch.Methods);
                 Prepare(typeof(WebPage), WebPage.Methods);
+                Prepare(typeof(CountdownBar), CountdownBar.Methods);
                 RunCoreOnce();
             }
             catch (Exception ex)

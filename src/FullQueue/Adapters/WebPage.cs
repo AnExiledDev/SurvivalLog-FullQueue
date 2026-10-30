@@ -7,7 +7,7 @@ namespace FullQueue.Adapters;
 
 /// <summary>
 /// The mod's half that lives in the game's web UI: page.js, run in the root document the game's own pages sit in. It
-/// gives the queue bar the orders past the fifth and lets it scroll. The web view can reload at any time and lose the
+/// gives the queue bar the orders past the fifth and lets it scroll, and draws the queue on the countdown screen. The web view can reload at any time and lose the
 /// script, so every couple of seconds a probe of a few bytes asks the page whether the script still runs, and the
 /// script is sent only when it does not (<see cref="ScriptKeeper"/>).
 /// </summary>
@@ -37,6 +37,10 @@ internal sealed class WebPage
 
     public void KeepInstalled(long nowMs)
     {
+        // The countdown bar's list as soon as it changes. Before page.js runs it does nothing, and the install below
+        // brings the last one with the script.
+        if (CountdownBar.TakePending(out var countdownCall)) Run(countdownCall, null);
+
         switch (_keeper.Tick(nowMs))
         {
             case ScriptStep.Wait:
@@ -54,7 +58,9 @@ internal sealed class WebPage
 
     private void Install()
     {
-        if (!Run(Script(), null) || _hasReportedInstall) return;
+        var lastCountdown = CountdownBar.LastCall;
+
+        if (!Run(lastCountdown == null ? Script() : Script() + "\n;" + lastCountdown, null) || _hasReportedInstall) return;
 
         _hasReportedInstall = true;
         _log("page script sent to the web UI");

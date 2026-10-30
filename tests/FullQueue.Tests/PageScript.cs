@@ -61,6 +61,31 @@ internal sealed class PageScript
 
     public string ClickSlot(int index) => Text($"clickSlot(page, {index})");
 
+    /// <summary>Opens the countdown screen, CoreUI0, as the page named <c>countdown</c>.</summary>
+    public void OpenCountdown() => Run("var countdown = openCoreUI0();");
+
+    public void ReloadCountdown() => Run("closeCoreUI0(countdown); countdown = openCoreUI0();");
+
+    /// <summary>
+    /// The plugin's countdown hook handing the script this many waiting orders, written by the real core as the hook
+    /// writes them. Order n is named "order n", shows icon "icon n" and cancels with parent id 100 + n.
+    /// </summary>
+    public void PluginSendsCountdownOrders(int count)
+    {
+        var orders = Enumerable.Range(1, count)
+            .Select(n => (QueueSlot)new QueueSlot.Order("icon" + n, "order " + n, IsAuto: n == 2, ParentId: 100 + n))
+            .ToList();
+
+        PluginSendsCountdown(QueueBar.Extend(CountdownPage.EmptyQueue, orders) ?? throw new InvalidOperationException("the core refused the empty list"));
+    }
+
+    /// <summary>The plugin's call as it reaches the web view: the countdown list, or <c>null</c> to take the bar away.</summary>
+    public void PluginSendsCountdown(string queueText) => Run(CountdownPage.ShowCall(queueText));
+
+    public void NextCountdownFrame() => Run("nextFrame(countdown)");
+
+    public string ClickCountdownSlot(int index) => Text($"clickPreSlot(countdown, {index})");
+
     public void Run(string statements) => _engine.Execute(statements);
 
     public string Text(string expression) => _engine.Evaluate($"String({expression})").AsString();

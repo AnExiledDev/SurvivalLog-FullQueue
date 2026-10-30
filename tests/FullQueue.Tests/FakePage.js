@@ -81,6 +81,8 @@ var FakeElement = class {
 
   get className() { return this.classes.join(' '); }
 
+  set className(value) { this.classes = value ? String(value).split(' ').filter(Boolean) : []; }
+
   // In a document: its topmost ancestor is that document's root element.
   get isConnected() {
     var top = this;
@@ -501,6 +503,131 @@ function counts(page) {
 }
 
 function styleOn(page) { return page.document.getElementById('slfq-style'); }
+
+// ===== The countdown screen =====
+
+// What the root page posts to the plugin through the web view.
+var posted = [];
+
+window.vuplex = { postMessage: function (message) { posted.push(String(message)); } };
+
+// The countdown bar's layout from page.js's style, unzoomed: CoreUI0 has no body zoom.
+var PRE_SLOT_PX = 41.86;
+var PRE_GAP_PX = 2.73;
+var PRE_PAD_PX = 3.64;
+var PRE_LEFT_PX = 30;
+
+function preRowWidth(slots) { return slots > 0 ? slots * PRE_SLOT_PX + (slots - 1) * PRE_GAP_PX : 0; }
+
+// An element of CoreUI0. The script's bar (class slfq-pre) is laid out as page.js's style lays it out, capped at five
+// slots once it is long and the style is on the page; its slots sit in a row inside it.
+var FakePreElement = class extends FakeElement {
+  constructor(tagName) {
+    super(tagName);
+    this.scrollLeft = 0;
+    this.clientLeft = BORDER_PX;
+  }
+
+  get slots() { return this.children.filter(function (child) { return child.classList.contains('queue-slot'); }); }
+
+  get isCapped() {
+    return this.classList.contains('slfq-long') && !!this.ownerDocument && findById(this.ownerDocument, 'slfq-pre-style') !== null;
+  }
+
+  get scrollWidth() { return 2 * PRE_PAD_PX + preRowWidth(this.slots.length); }
+
+  get clientWidth() { return 2 * PRE_PAD_PX + preRowWidth(this.isCapped ? Math.min(this.slots.length, GAME_SLOTS) : this.slots.length); }
+
+  get offsetWidth() { return this.clientWidth + 2 * BORDER_PX; }
+
+  getBoundingClientRect() {
+    layoutReads++;
+
+    if (this.classList.contains('slfq-pre')) return { left: PRE_LEFT_PX, right: PRE_LEFT_PX + this.offsetWidth, width: this.offsetWidth };
+
+    var bar = this.parentElement;
+
+    if (!this.classList.contains('queue-slot') || !bar) return { left: 0, right: 0, width: 0 };
+
+    var left = PRE_LEFT_PX + BORDER_PX + PRE_PAD_PX + bar.slots.indexOf(this) * (PRE_SLOT_PX + PRE_GAP_PX) - bar.scrollLeft;
+
+    return { left: left, right: left + PRE_SLOT_PX, width: PRE_SLOT_PX };
+  }
+};
+
+// CoreUI0, the countdown screen, in an iframe of the root page: the bottom left corner's column of tools and buttons,
+// and the status tags beside them.
+function openCoreUI0() {
+  var frame = document.body.appendChild(new FakeElement('iframe'));
+  var doc = makeDocument();
+  var page = {
+    document: doc,
+    evals: 0,
+    parses: 0,
+    frames: [],
+    requestAnimationFrame: function (callback) {
+      page.frames.push(callback);
+
+      return page.frames.length;
+    }
+  };
+
+  doc.createElement = function (tagName) { return new FakePreElement(tagName); };
+  doc.defaultView = page;
+  frame.src = 'https://webui.local/UI/CoreUI0/CoreUI0.html';
+  frame.contentWindow = page;
+  frame.contentDocument = doc;
+  page.frame = frame;
+  page.corner = doc.body.appendChild(new FakeElement('div', 'bottom-left'));
+  page.corner.appendChild(new FakeElement('div', 'vertical-tools'));
+  page.corner.appendChild(new FakeElement('div', 'action-row'));
+  page.buffs = doc.body.appendChild(new FakeElement('div', 'buff-container'));
+
+  return page;
+}
+
+function closeCoreUI0(page) { document.body.removeChild(page.frame); }
+
+// The script's countdown bar, found without counting as the script's search.
+function preBar(page) { return findAll(page.document.documentElement, '.slfq-pre')[0] || null; }
+
+// What each slot of the countdown bar shows: its icon, its name, or nothing.
+function preShown(page) {
+  return preBar(page).slots.map(function (slot) {
+    var content = slot.children[0];
+
+    if (!content) return '';
+
+    return content.tagName === 'img' ? content.src : content.textContent;
+  }).join(',');
+}
+
+// The classes of the corner's children, in order, such as "vertical-tools,action-row,slfq-pre".
+function cornerOrder(page) { return page.corner.children.map(function (child) { return child.classes[0]; }).join(','); }
+
+// A click on the countdown bar's slot where it is drawn. A slot whose pointer events are off is not hit.
+function clickPreSlot(page, index) {
+  var slot = preBar(page).slots[index];
+
+  posted = [];
+
+  if (slot && slot.style.pointerEvents !== 'none') slot.dispatch('click', {});
+
+  return posted.join(';');
+}
+
+function preCounts(page) {
+  var found = [];
+
+  preBar(page).slots.forEach(function (slot, index) {
+    if (slot.hasAttribute('data-slfq-before')) found.push(index + ':before:' + slot.getAttribute('data-slfq-before'));
+    if (slot.hasAttribute('data-slfq-after')) found.push(index + ':after:' + slot.getAttribute('data-slfq-after'));
+  });
+
+  return found.join(',');
+}
+
+function preStyleOn(page) { return findById(page.document, 'slfq-pre-style'); }
 
 // The value a style element's rule for the selector declares for a property, or null when it declares none.
 function sheetStyle(sheet, selector, property) {

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- The countdown before the disaster now has a queue bar. The game shows none there, so the mod adds one in the bottom left corner, under the buttons there, which move up to make room. Click an order on it to cancel it. It goes away when the disaster starts.
+- Made for Survival Log 1.1.20151.
+
 ## 0.3.2
 
 - The game runs smoother with the queue bar. The mod no longer sends its queue bar code to the game's screen again every couple of seconds, and the queue bar is only measured again when it changes.

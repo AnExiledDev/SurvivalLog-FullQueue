@@ -12,6 +12,7 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 [*][b]A full queue on expeditions[/b]: the same on an expedition.[/*]
 [*][b]Only one thing changes[/b]: a new order joins the end of the queue instead of replacing it. Nothing else about orders is changed.[/*]
 [*][b]See every waiting order[/b]: the queue bar at the bottom of the screen shows all your waiting orders, not just the first 5. With more than 5 it keeps its size and scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight. Click any of them to cancel it.[/*]
+[*][b]A queue bar in the countdown[/b]: the game shows no queue bar in the countdown before the disaster. The mod adds one in the bottom left corner, under the buttons there, which move up to make room. Click an order on it to cancel it.[/*]
 [*][b]Each place has its own switch[/b]: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.[/*]
 [/list]
 No new keys or buttons. Full Queue adds no data to your save and does not edit game files. You can remove it at any time.
@@ -30,7 +31,7 @@ Works in English and Chinese.
 
 [size=5]Requirements[/size]
 [list]
-[*]Survival Log 1.1.19611. A game update can break it until the mod is updated.[/*]
+[*]Survival Log 1.1.20151. A game update can break it until the mod is updated.[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url] (BepInEx 6.0.0-be.788, IL2CPP). Install it first.[/*]
 [*]Optional: [url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.[/*]
 [/list]
@@ -68,6 +69,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 [*][b]外出探索也能排满队列[/b]：外出探索时同样如此。[/*]
 [*][b]只改这一处[/b]：新操作排到队列末尾，而不是替换掉队列。操作的其他方面一概不变。[/*]
 [*][b]看到每个等待中的操作[/b]：画面下方的队列栏会显示所有等待中的操作，不再只显示前 5 个。超过 5 个时，队列栏大小不变，可以用鼠标滚轮滚动，边缘的小数字会显示那一侧还有几个操作不在视野内。点击任意一个即可取消它。[/*]
+[*][b]灾变倒计时中的队列栏[/b]：游戏在灾变前的倒计时中不显示队列栏。模组会在左下角加上一个，放在那里的按钮下方，按钮会上移让出位置。点击其中的操作即可取消它。[/*]
 [*][b]每处单独开关[/b]：如果你更喜欢游戏原本的做法，可以单独关闭开局或外出探索时的队列。[/*]
 [/list]
 没有新增按键或按钮。Full Queue 不会往存档里添加任何内容，也不会修改游戏文件，随时可以移除。
@@ -85,7 +87,7 @@ Open source under MIT: [url=https://github.com/AnExiledDev/SurvivalLog-FullQueue
 
 [size=5]前置要求[/size]
 [list]
-[*]Survival Log 1.1.19611。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
+[*]Survival Log 1.1.20151。游戏更新后模组可能暂时失效，直到模组更新为止。[/*]
 [*][url=https://www.nexusmods.com/survivallog/mods/12]BepInEx for Survival Log[/url]（BepInEx 6.0.0-be.788，IL2CPP），请先安装。[/*]
 [*]可选：[url=https://www.nexusmods.com/survivallog/mods/61]Exiled's Toolkit[/url] 0.4.0 或更新版本。装了它，在 Mod Manager 的「模组」界面改动的设置无需重启游戏即可生效；没装的话，改动在下次启动游戏时生效。[/*]
 [/list]

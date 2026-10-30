@@ -20,6 +20,7 @@ public sealed class PageTicker : MonoBehaviour
     {
         try
         {
+            CountdownBar.CancelClicked();
             Page?.KeepInstalled(Environment.TickCount64);
         }
         catch (Exception ex)

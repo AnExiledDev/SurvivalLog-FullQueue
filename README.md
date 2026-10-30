@@ -10,6 +10,7 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 - **A full queue on expeditions**: the same on an expedition.
 - **Only one thing changes**: a new order joins the end of the queue instead of replacing it. Nothing else about orders is changed.
 - **See every waiting order**: the queue bar at the bottom of the screen shows all your waiting orders, not just the first 5. With more than 5 it keeps its size and scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight on that side. Click any of them to cancel it, as with the first 5. With 5 or fewer the bar looks just as it always did. It works wherever the game shows the bar.
+- **A queue bar in the countdown**: the game shows no queue bar in the countdown before the disaster. The mod adds one in the bottom left corner, under the buttons there, which move up to make room. Click an order on it to cancel it. It goes away when the disaster starts and the game's own bar takes over.
 - **Each place has its own switch**: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.
 - **A log file**: what the mod did is written to `BepInEx\full-queue.log`.
 
@@ -29,7 +30,7 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 
 ## Requirements
 
-- Survival Log 1.1.19611. Built for this version; a game update can break it until the mod is updated.
+- Survival Log 1.1.20151. Built for this version; a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game, version `6.0.0-be.788`.
 - Optional: [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.4.0 or newer. With it, settings changed on the Mod Manager's Mods screen take effect without restarting the game. Without it, they take effect at the next game start.
 

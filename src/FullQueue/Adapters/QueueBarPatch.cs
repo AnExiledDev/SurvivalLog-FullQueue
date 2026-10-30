@@ -80,7 +80,7 @@ internal static class QueueBarPatch
     }
 
     /// <summary>A reloaded action table or a change of language drops every kept text.</summary>
-    private static void UseTablesOf(ConfigManager config, ActionTable actions)
+    internal static void UseTablesOf(ConfigManager config, ActionTable actions)
     {
         var cache = config._customCache_k__BackingField;
         var texts = cache?._LanguageMap_k__BackingField;
@@ -122,7 +122,7 @@ internal static class QueueBarPatch
     /// Read the way the game reads its first five: an action it cannot look up is an empty slot. Looked up in the table
     /// itself, since the game's getter writes an error to the log for every id it cannot find.
     /// </summary>
-    private static ActionText? TextOf(ActionTable actions, int actionId)
+    internal static ActionText? TextOf(ActionTable actions, int actionId)
     {
         if (actionId <= 0) return null;
 

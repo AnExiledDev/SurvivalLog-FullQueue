@@ -5,8 +5,11 @@
 // and the first and last whole slots in sight show how many orders are out of sight on their side. Slots not wholly
 // in sight stop taking clicks, so they cannot block clicks on the world behind them. A CoreUI1 page that loads while
 // more than five wait gets the whole queue back from the last update. With five or fewer the bar is left exactly as
-// the game draws it. The plugin asks every couple of seconds whether the script still runs and sends it only when it
-// does not; the guard below makes a second copy return at once all the same.
+// the game draws it. Before the disaster the game shows the countdown screen (CoreUI0), which has no queue bar, so the
+// plugin hands this script the queue itself and the script draws a bar of its own in that screen's bottom left corner,
+// below the tools and buttons there, which move up to make room. A click on an order there cancels it. The plugin asks
+// every couple of seconds whether the script still runs and sends it only when it does not; the guard below makes a
+// second copy return at once all the same.
 (function () {
   if (window.__slfullqueue) return;
 
@@ -57,21 +60,23 @@
   }
 
   // Kept on the document, so a poll looks it up only when the page lost it.
-  function addStyle(doc) {
-    if (doc.__slfqStyle && doc.__slfqStyle.isConnected) return;
+  function addStyle(doc, id, css) {
+    var key = '__slfqStyle_' + id;
 
-    var style = doc.getElementById(STYLE_ID);
+    if (doc[key] && doc[key].isConnected) return;
+
+    var style = doc.getElementById(id);
 
     if (!style) {
       if (!doc.head) return;
 
       style = doc.createElement('style');
-      style.id = STYLE_ID;
-      style.textContent = CSS;
+      style.id = id;
+      style.textContent = css;
       doc.head.appendChild(style);
     }
 
-    doc.__slfqStyle = style;
+    doc[key] = style;
   }
 
   // ===== The orders past the fifth =====
@@ -402,14 +407,254 @@
     if (coreFrame) patchFrame(coreFrame);
   }
 
-  function findCoreFrame() {
+  function findCoreFrame() { return findFrame(CORE_PAGE); }
+
+  function findFrame(pattern) {
     for (var i = 0; i < frames.length; i++) {
       var frame = frames.item(i);
 
-      if (CORE_PAGE.test(frame.src || '')) return frame;
+      if (pattern.test(frame.src || '')) return frame;
     }
 
     return null;
+  }
+
+  // ===== The countdown screen =====
+
+  var COUNTDOWN_PAGE = /CoreUI0\.html/;
+  var PRE_STYLE_ID = 'slfq-pre-style';
+  var PRE = 'slfq-pre';
+  var PRE_ON = 'slfq-pre-on';
+  var CANCEL_MESSAGE = 'slmod|fullqueue|cancel|';
+
+  // The HUD bar's look at this page's size: the HUD page is zoomed 1.3 and this one is not, so every size is the HUD's
+  // times 1.3. This page makes every box border-box. Every rule needs the bar's class, except the one that moves the
+  // status tags up with the buttons beside them while the bar is in.
+  var PRE_BAR = '.' + PRE;
+  var PRE_SLOT = PRE_BAR + ' > .queue-slot';
+  var PRE_CSS = [
+    PRE_BAR + '{display:flex;align-self:flex-start;gap:2.73px;background-color:rgba(40,40,40,0.9);border:1px solid rgba(255,255,255,0.12);border-radius:7.28px;padding:3.64px;box-shadow:0 1.82px 4.55px rgba(0,0,0,0.5)}',
+    PRE_SLOT + '{flex-shrink:0;width:41.86px;height:41.86px;background-color:rgba(255,255,255,0.05);border-radius:3.64px;display:flex;align-items:center;justify-content:center;position:relative;transition:all 0.2s}',
+    PRE_SLOT + '.filled{background-color:rgba(70,70,70,1);box-shadow:inset 0 0 4px rgba(0,0,0,0.5)}',
+    PRE_SLOT + '.ai-driven{border:1px solid #4A90D9;box-shadow:inset 0 0 4px rgba(74,144,217,0.4)}',
+    PRE_SLOT + '.cancellable{cursor:pointer}',
+    PRE_SLOT + '.cancellable:active{transform:scale(0.95);filter:brightness(0.9)}',
+    PRE_SLOT + ' > .slfq-pre-img{width:31.2px;height:31.2px;object-fit:contain;filter:brightness(0.85)}',
+    PRE_SLOT + ' > .slfq-pre-text{font-size:13px;font-weight:bold;color:white;text-shadow:1px 1px 1px black;max-width:39px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    PRE_SLOT + ' > .slfq-pre-x{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s ease-in-out;z-index:10;font:bold 23.4px Arial,sans-serif;border-radius:inherit;background-color:rgba(50,50,50,0.85);color:#ddd;pointer-events:none}',
+    PRE_SLOT + '.cancellable:hover > .slfq-pre-x{opacity:1}',
+    PRE_BAR + '.' + LONG + '{box-sizing:content-box;max-width:calc(5 * 41.86px + 4 * 2.73px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}',
+    PRE_BAR + '.' + LONG + '::-webkit-scrollbar{display:none}',
+    PRE_BAR + '.' + LONG + ' > .queue-slot[' + BEFORE + ']::before,' + PRE_BAR + '.' + LONG + ' > .queue-slot[' + AFTER + ']::after{position:absolute;top:0;z-index:11;padding:0 2.6px;border-radius:3.64px;background:rgba(255,193,7,0.9);color:#222;font:bold 11.7px/15.6px Arial,sans-serif;pointer-events:none}',
+    PRE_BAR + '.' + LONG + ' > .queue-slot[' + BEFORE + ']::before{content:attr(' + BEFORE + ');left:0}',
+    PRE_BAR + '.' + LONG + ' > .queue-slot[' + AFTER + ']::after{content:attr(' + AFTER + ');right:0}',
+
+    // The tags sit beside the bag button: the bar is 51.14px tall with the corner's 15px gap above it.
+    'body.' + PRE_ON + ' .buff-container{bottom:184px}'
+  ].join('\n');
+
+  // The waiting orders the plugin last sent, in the game's bar text shape, or null outside the countdown.
+  var preQueue = null;
+
+  // The frame the countdown screen was last found in, kept while it stays in the document and holds it.
+  var preFrame = null;
+
+  // The plugin's call: the waiting orders, an empty list for a new game, or null once the HUD shows the queue.
+  window.__slfqPre = function (list) {
+    try {
+      preQueue = Array.isArray(list) ? list : null;
+      patchCountdown();
+    } catch (e) {
+      diag('countdown queue', e);
+    }
+  };
+
+  // Outside the countdown a poll costs nothing here.
+  function patchCountdown() {
+    if (preQueue === null) {
+      if (preFrame) dropPreBar(preFrame);
+
+      preFrame = null;
+
+      return;
+    }
+
+    if (!preFrame || !preFrame.isConnected) preFrame = findFrame(COUNTDOWN_PAGE);
+    if (preFrame) patchCountdownFrame(preFrame);
+  }
+
+  function patchCountdownFrame(frame) {
+    var page = null;
+    var doc = null;
+
+    try {
+      page = frame.contentWindow;
+      doc = frame.contentDocument;
+    } catch (e) {}
+
+    if (!page || !doc) return diag('page access', 'cannot reach ' + (frame.src || 'CoreUI0'));
+    if (doc.readyState === 'loading') return;
+
+    // The frame may have been loaded with another page since.
+    if (!COUNTDOWN_PAGE.test(frame.src || '')) {
+      preFrame = null;
+
+      return;
+    }
+
+    try {
+      addStyle(doc, PRE_STYLE_ID, PRE_CSS);
+
+      var bar = preBarOf(doc);
+
+      if (!bar) return;
+
+      if (bar.__slfqDrawn !== preQueue) {
+        drawPreBar(bar, preQueue);
+        bar.__slfqDrawn = preQueue;
+        fitPreOnNextFrame(page, bar);
+      } else {
+        fitIfStale(bar);
+      }
+    } catch (e) {
+      diag('CoreUI0', e);
+    }
+  }
+
+  // The bar goes last in the bottom left corner's column, so it takes the corner and the tools and buttons move up.
+  // Kept on the document, so a poll looks the corner up only when the page lost the bar.
+  function preBarOf(doc) {
+    var bar = doc.__slfqPreBar;
+    var corner = doc.__slfqPreCorner;
+
+    if (bar && corner && corner.isConnected && bar.parentElement === corner) return bar;
+
+    corner = doc.querySelector('.bottom-left');
+
+    if (!corner || !doc.body) return null;
+
+    if (!bar) {
+      bar = doc.createElement('div');
+      bar.className = PRE;
+    }
+
+    corner.appendChild(bar);
+    doc.body.classList.toggle(PRE_ON, true);
+    doc.__slfqPreBar = bar;
+    doc.__slfqPreCorner = corner;
+
+    return bar;
+  }
+
+  function dropPreBar(frame) {
+    var doc = null;
+
+    try {
+      doc = frame.contentDocument;
+    } catch (e) {}
+
+    var bar = doc && doc.__slfqPreBar;
+
+    if (!bar) return;
+
+    if (bar.parentElement) bar.parentElement.removeChild(bar);
+    if (doc.body) doc.body.classList.toggle(PRE_ON, false);
+
+    doc.__slfqPreBar = null;
+    doc.__slfqPreCorner = null;
+  }
+
+  // At least the five slots the HUD bar always shows, so the corner does not jump as orders come and go.
+  function drawPreBar(bar, list) {
+    var count = Math.max(GAME_SLOTS, list.length);
+    var slots = slotsIn(bar);
+
+    for (var i = count; i < slots.length; i++) bar.removeChild(slots[i]);
+
+    for (var j = 0; j < count; j++) drawPreSlot(slots[j] || newPreSlot(bar), list[j] || emptySlot());
+  }
+
+  function newPreSlot(bar) {
+    var slot = bar.ownerDocument.createElement('div');
+
+    slot.className = 'queue-slot';
+    slot.setAttribute('data-interactive', '');
+    slot.addEventListener('click', onPreClick);
+    bar.appendChild(slot);
+
+    return slot;
+  }
+
+  // A slot is drawn again only when what it shows changed.
+  function drawPreSlot(slot, order) {
+    var isFilled = !!(order.icon || order.name);
+    var isCancellable = isFilled && !!order.isCancellable;
+    var showsIcon = isFilled && !!order.showIcon && !!order.icon;
+    var key = isFilled ? [showsIcon ? order.icon : '', order.name, !!order.isAiDriven, isCancellable].join('|') : '';
+
+    slot.__slfqOrder = order;
+
+    if (slot.__slfqKey === key) return;
+
+    slot.__slfqKey = key;
+    slot.className = 'queue-slot' + (isFilled ? ' filled' : '') + (isCancellable ? ' cancellable' : '') + (isFilled && order.isAiDriven ? ' ai-driven' : '');
+
+    while (slot.children.length > 0) slot.removeChild(slot.children[0]);
+
+    if (!isFilled) return;
+
+    var doc = slot.ownerDocument;
+    var content;
+
+    if (showsIcon) {
+      content = doc.createElement('img');
+      content.className = 'slfq-pre-img';
+      content.src = order.icon;
+    } else {
+      content = doc.createElement('span');
+      content.className = 'slfq-pre-text';
+      content.textContent = order.name;
+    }
+
+    slot.appendChild(content);
+
+    if (!isCancellable) return;
+
+    var cross = doc.createElement('div');
+
+    cross.className = 'slfq-pre-x';
+    cross.textContent = '\u2715';
+    slot.appendChild(cross);
+  }
+
+  // As on the HUD bar, a click cancels a filled, cancellable order by its parent id. A slot out of sight takes none.
+  function onPreClick(event) {
+    try {
+      var slot = event.currentTarget;
+      var order = slot.__slfqOrder;
+
+      if (!order || !(order.icon || order.name) || !order.isCancellable || !(order.parentId > 0)) return;
+      if (slot.style.pointerEvents === 'none') return;
+      if (window.vuplex) window.vuplex.postMessage(CANCEL_MESSAGE + order.parentId);
+    } catch (e) {
+      diag('countdown cancel', e);
+    }
+  }
+
+  function fitPreOnNextFrame(page, bar) {
+    if (bar.__slfqFitting) return;
+
+    bar.__slfqFitting = true;
+    page.requestAnimationFrame(function () {
+      bar.__slfqFitting = false;
+
+      try {
+        fitBar(bar);
+        bar.__slfqSettle = SETTLE_POLLS;
+      } catch (e) {
+        diag('countdown queue', e);
+      }
+    });
   }
 
   function patchFrame(frame) {
@@ -436,7 +681,7 @@
         listen(page);
       }
 
-      addStyle(doc);
+      addStyle(doc, STYLE_ID, CSS);
 
       if (!doc.__slfqChecked) restoreQueue(page, doc);
 
@@ -453,6 +698,12 @@
       patchPages();
     } catch (e) {
       diag('poll', e);
+    }
+
+    try {
+      patchCountdown();
+    } catch (e) {
+      diag('countdown poll', e);
     }
   }, POLL_MS);
 })();
