@@ -21,7 +21,9 @@ namespace FullQueue.Adapters;
 /// for page.js, which draws its own bar on CoreUI0. Once IsUIRefresh is on, the game's bar has the queue and page.js
 /// drops its own. A click on an order there comes back as a page message and cancels the order the way the HUD bar's
 /// click does (Reducer_Web_CoreUI1.RA_OnCancel). A new game in the countdown (Ac_CoreUI0_Open, sent only by
-/// LogicAdapter.OnSendInitialState) empties the bar. Static because Harmony hooks are; the game calls them on its main
+/// LogicAdapter.OnSendInitialState) empties the bar. The big box carries the HUD's ring and count, worked out as the HUD's
+/// reducer does: the task's progress (BTEffectManager.GetProgress) for a long action, or the store count the game sends
+/// its HUD (Ac_CoreUI1_QuickStoreProgress) for an order that stores items. Static because Harmony hooks are; the game calls them on its main
 /// thread, and the page messages arrive on the web view's thread.
 /// </summary>
 internal static class CountdownBar
@@ -31,10 +33,12 @@ internal static class CountdownBar
     /// <summary>The ActionSourceType the game marks as automatic in its bar.</summary>
     private const int AutoSource = 1;
 
-    internal static readonly string[] Methods = { nameof(SyncQueue), nameof(TakePending), nameof(CancelClicked) };
+    internal static readonly string[] Methods = { nameof(SyncQueue), nameof(TakePending), nameof(CancelClicked), nameof(KeepStoreCount) };
 
     private static readonly Type[] SyncParameters = { typeof(AgentActionSource) };
     private static readonly Type[] OpenParameters = { typeof(GameMode) };
+    private static readonly Type[] StoreCountParameters = { typeof(long), typeof(int), typeof(int) };
+    private static readonly StoreCounts Counts = new();
     private static readonly QueueSlot Blank = new QueueSlot.Blank();
     private static readonly CountdownQueue Shown = new();
     private static readonly List<int> ActionIds = new();
@@ -47,6 +51,8 @@ internal static class CountdownBar
     private static int _uiRefreshAt;
     private static int _agentIdAt;
     private static int _currentParentAt;
+    private static int _currentActionAt;
+    private static int _currentTaskAt;
     private static int _parentListAt;
     private static int _listSizeAt;
     private static int _listVersionAt;
@@ -81,6 +87,11 @@ internal static class CountdownBar
             nameof(NewCountdown),
             "hooked Ac_CoreUI0_Open.SendAction: a new game starts with an empty countdown queue",
             "a new game can show the last game's countdown queue until its first order");
+
+        PatchKit.Patch(harmony, typeof(CountdownBar), typeof(Ac_CoreUI1_QuickStoreProgress), nameof(Ac_CoreUI1_QuickStoreProgress.SendAction),
+            StoreCountParameters, nameof(KeepStoreCount),
+            "hooked Ac_CoreUI1_QuickStoreProgress.SendAction: the countdown's big box shows the store count",
+            "the countdown's big box shows no store count");
 
         try
         {
@@ -121,6 +132,8 @@ internal static class CountdownBar
         _uiRefreshAt = OffsetOf(Il2CppClassPointerStore<ActionManager>.NativeClassPtr, "<IsUIRefresh>k__BackingField");
         _agentIdAt = OffsetOf(Il2CppClassPointerStore<AgentActionSource>.NativeClassPtr, "<AgentId>k__BackingField");
         _currentParentAt = OffsetOf(Il2CppClassPointerStore<AgentActionSource>.NativeClassPtr, "<CurrentParent>k__BackingField");
+        _currentActionAt = OffsetOf(Il2CppClassPointerStore<AgentActionSource>.NativeClassPtr, "<CurrentAction>k__BackingField");
+        _currentTaskAt = OffsetOf(Il2CppClassPointerStore<AgentActionSource>.NativeClassPtr, "<CurrentTaskBt>k__BackingField");
         _parentListAt = OffsetOf(Il2CppClassPointerStore<AgentActionSource>.NativeClassPtr, "<ParentList>k__BackingField");
         _listSizeAt = OffsetOf(Il2CppClassPointerStore<Il2CppSystem.Collections.Generic.List<long>>.NativeClassPtr, "_size");
         _listVersionAt = OffsetOf(Il2CppClassPointerStore<Il2CppSystem.Collections.Generic.List<long>>.NativeClassPtr, "_version");
@@ -154,9 +167,12 @@ internal static class CountdownBar
             if (_playerId <= 0 || *(long*)(source + _agentIdAt) != _playerId) return;
 
             var list = *(byte**)(source + _parentListAt);
+            var current = (long)*(IntPtr*)(source + _currentParentAt);
+            var action = (long)*(IntPtr*)(source + _currentActionAt);
+            var task = *(long*)(source + _currentTaskAt);
             var stamp = list == null
-                ? new QueueStamp(0, 0, 0, (long)*(IntPtr*)(source + _currentParentAt))
-                : new QueueStamp((long)list, *(int*)(list + _listVersionAt), *(int*)(list + _listSizeAt), (long)*(IntPtr*)(source + _currentParentAt));
+                ? new QueueStamp(0, 0, 0, current, action, task, Counts.Version)
+                : new QueueStamp((long)list, *(int*)(list + _listVersionAt), *(int*)(list + _listSizeAt), current, action, task, Counts.Version);
 
             if (!Shown.HasMoved(stamp)) return;
 
@@ -215,8 +231,8 @@ internal static class CountdownBar
 
     /// <summary>
     /// The order being worked on as the HUD's big box shows it (Reducer_Web_CoreUI1.RA_UpdateActionList): the action's
-    /// icon and name, a cross only when the action IsStop, blue when automatic. Null when there is none or the game
-    /// cannot look it up, so the box shows empty.
+    /// icon and name, a cross only when the action IsStop, blue when automatic, and its ring and count. Null when there
+    /// is none or the game cannot look it up, so the box shows empty.
     /// </summary>
     private static CurrentOrder? CurrentOf(AgentActionSource source, ActionTable actions)
     {
@@ -228,9 +244,35 @@ internal static class CountdownBar
 
         if (text == null) return null;
 
-        var isStop = actions.TryGetValue(parent.ActionId, out var action) && action != null && action._IsStop_k__BackingField;
+        var hasAction = actions.TryGetValue(parent.ActionId, out var action) && action != null;
+        var isStop = hasAction && action!._IsStop_k__BackingField;
+        var progress = ProgressOf(source, parent.ActionId, parent.ListId, hasAction ? action!._During_k__BackingField : 0f);
 
-        return new CurrentOrder(text.Icon, text.Name, isStop, IsAuto: (int)parent.SourceType == AutoSource, parent.ListId);
+        return new CurrentOrder(text.Icon, text.Name, isStop, IsAuto: (int)parent.SourceType == AutoSource, parent.ListId, progress);
+    }
+
+    /// <summary>
+    /// The ring and count as RA_UpdateActionList sets them: the order's store count first, otherwise a ring only for an
+    /// action longer than the game's short ones while the action running is the order's own, draining from what the
+    /// task has left.
+    /// </summary>
+    private static OrderProgress ProgressOf(AgentActionSource source, int actionId, long parentId, float during)
+    {
+        var count = Counts.Of(parentId);
+
+        if (count == null && during <= OrderProgress.ShortestTimed) return OrderProgress.None;
+
+        var running = source.CurrentAction;
+        var isActionOfOrder = running != null && running.ActionId == actionId;
+        var task = source.CurrentTaskBt;
+        var left = 1f;
+
+        if (count == null && isActionOfOrder && task > 0)
+            left = GameSingleton.Existing<BattleLogicWorld>()?._BTEffectManager?.GetProgress(task) ?? 1f;
+
+        var seconds = count == null && isActionOfOrder ? Toolset.GetGameTime_Float(during) : 0f;
+
+        return OrderProgress.Of(count, during, isActionOfOrder, left, seconds);
     }
 
     /// <summary>page.js takes its bar away; the next countdown starts from whatever the game sends then.</summary>
@@ -265,8 +307,25 @@ internal static class CountdownBar
         try
         {
             Shown.Forget();
+            Counts.Clear();
             _playerId = 0;
             Send(CountdownPage.EmptyQueue);
+        }
+        catch (Exception ex)
+        {
+            PatchKit.Fail(Doing, ex);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the store count the game sends its HUD, which is shut in the countdown: the order's parent id, the items
+    /// put away and all of them (SendAction's ParentId, Placed and Total, taken by position).
+    /// </summary>
+    private static void KeepStoreCount(long __0, int __1, int __2)
+    {
+        try
+        {
+            Counts.Set(__0, __1, __2);
         }
         catch (Exception ex)
         {

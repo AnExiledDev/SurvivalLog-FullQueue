@@ -428,8 +428,8 @@
   var PRE_ON = 'slfq-pre-on';
   var CANCEL_MESSAGE = 'slmod|fullqueue|cancel|';
 
-  // The HUD bar's look at this page's size: the HUD page is zoomed 1.3 and this one is not, so every size is the HUD's
-  // times 1.3. This page makes every box border-box. Every rule needs the bar's class, except the one that moves the
+  // The HUD's action panel rules from CoreUI1.html at this page's size: the HUD page is zoomed 1.3 and this one is not,
+  // so every size is the HUD's times 1.3; the ring keeps the HUD's numbers inside a viewBox of its size. This page makes every box border-box. Every rule needs the bar's class, except the one that moves the
   // status tags up with the buttons beside them while the bar is in.
   // As on the HUD, the bar is the last of a row: the big box with the order being worked on, the yellow arrow, then the
   // queue.
@@ -440,33 +440,46 @@
   var NOW_BOX = '.' + PRE_NOW;
   var SVG_NS = 'http://www.w3.org/2000/svg';
   var ARROW_PATH = 'M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z';
+  var PAUSE_MESSAGE = 'WebUI_CoreUI0_PauseMsg';
+  var SCALE_MESSAGE = 'WebUI_CoreUI0_TimeScaleMsg';
+
+  // The HUD ring's dash length, and the step its progress engine moves it by.
+  var RING_DASH = 206;
+  var RING_STEP = 0.005;
   var PRE_CSS = [
     '.' + PRE_ROW + '{display:flex;flex-direction:row;align-items:flex-end;gap:13.65px;align-self:flex-start}',
-    NOW_BOX + '{position:relative;flex-shrink:0;width:72.8px;height:72.8px;background-color:rgba(40,40,40,0.9);border-radius:7.28px;box-shadow:0 3.64px 7.28px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;transition:all 0.2s;border:1px solid transparent}',
+    NOW_BOX + '{position:relative;flex-shrink:0;width:72.8px;height:72.8px;background-color:rgba(40,40,40,0.9);border-radius:7.28px;box-shadow:0 3.64px 7.28px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;overflow:visible;transition:all 0.2s;border:1px solid transparent}',
     NOW_BOX + '.cancellable{cursor:pointer}',
     NOW_BOX + '.uncancellable{cursor:not-allowed}',
     NOW_BOX + '.ai-driven{border:1px solid #4A90D9;box-shadow:0 0 7.8px rgba(74,144,217,0.5)}',
     NOW_BOX + '.cancellable:hover{border:1px solid rgba(255,255,255,0.5)}',
-    NOW_BOX + '.cancellable:active{transform:scale(0.95);filter:brightness(0.9)}',
+    NOW_BOX + '.cancellable:active,' + PRE_SLOT + '.cancellable:active{transform:scale(0.95)!important;filter:brightness(0.9);transition:transform 0.05s ease-out}',
     NOW_BOX + '.empty{background-color:rgba(30,30,30,0.6);border:1px dashed rgba(255,255,255,0.2)}',
-    NOW_BOX + ' > .slfq-pre-img{width:52px;height:52px;object-fit:contain;filter:brightness(0.85)}',
-    NOW_BOX + ' > .slfq-pre-text{font-size:18.2px;font-weight:bold;color:white;text-shadow:1px 1px 2px black;text-align:center;max-width:62.4px;overflow:hidden}',
-    NOW_BOX + ' > .slfq-pre-x{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s ease-in-out;z-index:10;font:bold 31.2px Arial,sans-serif;border-radius:inherit;background-color:rgba(50,50,50,0.85);color:#ddd;pointer-events:none}',
+    '.slfq-pre-content{width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:inherit;position:relative}',
+    '.slfq-pre-pop{animation:slfq-pre-fly 0.4s cubic-bezier(0.25,1,0.5,1) both;transform-origin:center;z-index:100}',
+    '@keyframes slfq-pre-fly{0%{opacity:0;transform:translate(32.5px,-13px) scale(1.15)}60%{opacity:1;transform:translate(-2.6px,2.6px) scale(0.98)}100%{opacity:1;transform:translate(0,0) scale(1)}}',
+    NOW_BOX + ' .slfq-pre-img{width:52px;height:52px;object-fit:contain;z-index:1;filter:brightness(0.85)}',
+    NOW_BOX + ' .slfq-pre-text{font-size:18.2px;font-weight:bold;color:white;text-shadow:1px 1px 2px black;z-index:1;text-align:center;max-width:62.4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.slfq-pre-ring{position:absolute;top:0;left:0;width:72.8px;height:72.8px;transform:rotate(-90deg);pointer-events:none;z-index:2}',
+    '.slfq-pre-ring-line{fill:transparent;stroke:#FFC107;stroke-width:2.8;stroke-dasharray:206;stroke-dashoffset:0;stroke-linecap:round}',
+    '.slfq-pre-count{position:absolute;right:3.9px;bottom:2.6px;z-index:5;font:bold 14.3px/1 Arial,sans-serif;color:#fff;text-shadow:0 0 2.6px #000,0 0 2.6px #000;pointer-events:none}',
+    '.slfq-pre-x{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s ease-in-out;z-index:10;font-family:Arial,sans-serif;font-weight:bold;border-radius:inherit;pointer-events:none}',
+    NOW_BOX + ':hover > .slfq-pre-x,' + PRE_SLOT + '.filled:hover > .slfq-pre-x{opacity:1}',
+    NOW_BOX + '.cancellable > .slfq-pre-x{background-color:rgba(50,50,50,0.85);color:#ddd;font-size:31.2px}',
     NOW_BOX + '.uncancellable > .slfq-pre-x{background-color:rgba(80,20,20,0.8);color:#ffcccc;font-size:23.4px}',
-    NOW_BOX + ':hover > .slfq-pre-x{opacity:1}',
     '.slfq-pre-flow{display:flex;align-items:center;gap:5.46px}',
     '.slfq-pre-arrow{color:#FFC107;display:flex;align-items:center;justify-content:center;animation:slfq-pre-pulse 1.5s infinite ease-in-out;opacity:0.8;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8))}',
     '@keyframes slfq-pre-pulse{0%{transform:translateX(2.6px);opacity:0.5}50%{transform:translateX(0);opacity:1}100%{transform:translateX(2.6px);opacity:0.5}}',
     PRE_BAR + '{display:flex;gap:2.73px;background-color:rgba(40,40,40,0.9);border:1px solid rgba(255,255,255,0.12);border-radius:7.28px;padding:3.64px;box-shadow:0 1.82px 4.55px rgba(0,0,0,0.5)}',
-    PRE_SLOT + '{flex-shrink:0;width:41.86px;height:41.86px;background-color:rgba(255,255,255,0.05);border-radius:3.64px;display:flex;align-items:center;justify-content:center;position:relative;transition:all 0.2s}',
-    PRE_SLOT + '.filled{background-color:rgba(70,70,70,1);box-shadow:inset 0 0 4px rgba(0,0,0,0.5)}',
+    PRE_SLOT + '{flex-shrink:0;width:41.86px;height:41.86px;background-color:rgba(255,255,255,0.05);border-radius:3.64px;display:flex;align-items:center;justify-content:center;font-size:21.84px;position:relative;overflow:visible;cursor:default;transition:all 0.2s}',
+    '@keyframes slfq-pre-filled{0%{transform:scale(1.05);z-index:10}100%{transform:scale(1);z-index:1}}',
+    PRE_SLOT + '.filled{background-color:rgba(70,70,70,1);box-shadow:inset 0 0 4px rgba(0,0,0,0.5);animation:slfq-pre-filled 0.4s ease-out}',
     PRE_SLOT + '.ai-driven{border:1px solid #4A90D9;box-shadow:inset 0 0 4px rgba(74,144,217,0.4)}',
     PRE_SLOT + '.cancellable{cursor:pointer}',
-    PRE_SLOT + '.cancellable:active{transform:scale(0.95);filter:brightness(0.9)}',
-    PRE_SLOT + ' > .slfq-pre-img{width:31.2px;height:31.2px;object-fit:contain;filter:brightness(0.85)}',
-    PRE_SLOT + ' > .slfq-pre-text{font-size:13px;font-weight:bold;color:white;text-shadow:1px 1px 1px black;max-width:39px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
-    PRE_SLOT + ' > .slfq-pre-x{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s ease-in-out;z-index:10;font:bold 23.4px Arial,sans-serif;border-radius:inherit;background-color:rgba(50,50,50,0.85);color:#ddd;pointer-events:none}',
-    PRE_SLOT + '.cancellable:hover > .slfq-pre-x{opacity:1}',
+    PRE_SLOT + ' .slfq-pre-img{width:31.2px;height:31.2px;object-fit:contain;filter:brightness(0.85)}',
+    PRE_SLOT + ' .slfq-pre-text{font-size:13px;font-weight:bold;color:white;text-shadow:1px 1px 1px black;max-width:39px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    PRE_SLOT + '.cancellable > .slfq-pre-x{background-color:rgba(50,50,50,0.85);color:#ddd;font-size:23.4px}',
+    PRE_SLOT + '.uncancellable > .slfq-pre-x{background-color:rgba(80,20,20,0.8);color:#ffcccc;font-size:18.2px}',
     PRE_BAR + '.' + LONG + '{box-sizing:content-box;max-width:calc(5 * 41.86px + 4 * 2.73px);overflow-x:auto;overflow-y:hidden;scrollbar-width:none}',
     PRE_BAR + '.' + LONG + '::-webkit-scrollbar{display:none}',
     PRE_BAR + '.' + LONG + ' > .queue-slot[' + BEFORE + ']::before,' + PRE_BAR + '.' + LONG + ' > .queue-slot[' + AFTER + ']::after{position:absolute;top:0;z-index:11;padding:0 2.6px;border-radius:3.64px;background:rgba(255,193,7,0.9);color:#222;font:bold 11.7px/15.6px Arial,sans-serif;pointer-events:none}',
@@ -532,6 +545,7 @@
     }
 
     try {
+      listenPre(page);
       addStyle(doc, PRE_STYLE_ID, PRE_CSS);
 
       var bar = preBarOf(doc);
@@ -540,8 +554,10 @@
 
       var now = doc.__slfqPreNow;
 
+      // Every call from the plugin is a fresh read of the game, so the ring starts again from it.
       if (now.__slfqDrawn !== preNow) {
         drawPreNow(now, preNow);
+        startPreRing(page, now, preNow);
         now.__slfqDrawn = preNow;
       }
 
@@ -620,8 +636,9 @@
     return svg;
   }
 
-  // As the HUD's big box: empty and dashed with no order, otherwise the order's icon or name, blue when automatic,
-  // and on hover a cross when the order can be stopped or a lock when it cannot.
+  // As the HUD's big box: empty and dashed with no order, otherwise the order's icon or name, blue when automatic, the
+  // ring and the count, and on hover a cross when the order can be stopped or a lock when it cannot. As in the HUD, the
+  // order flies in only when the box was empty.
   function drawPreNow(now, order) {
     var isActive = !!order && !!(order.icon || order.name);
     var isCancellable = isActive && !!order.isCancellable;
@@ -631,15 +648,53 @@
     // Drawn again only when what it shows changed, so its icon does not load again.
     if (now.__slfqKey === key) return;
 
+    var wasEmpty = !now.__slfqKey;
+
     now.__slfqKey = key;
     now.className = PRE_NOW + (isActive ? (isCancellable ? ' cancellable' : ' uncancellable') : ' empty') + (isActive && order.isAiDriven ? ' ai-driven' : '');
 
     while (now.children.length > 0) now.removeChild(now.children[0]);
 
+    now.__slfqRing = null;
+    now.__slfqCount = null;
+
     if (!isActive) return;
 
     var doc = now.ownerDocument;
+    var ring = doc.createElementNS(SVG_NS, 'svg');
+    var line = doc.createElementNS(SVG_NS, 'rect');
+    var count = doc.createElement('span');
+
+    now.appendChild(newPreContent(doc, order, showsIcon, wasEmpty));
+    ring.setAttribute('class', 'slfq-pre-ring');
+    ring.setAttribute('viewBox', '0 0 56 56');
+    ring.setAttribute('width', '72.8');
+    ring.setAttribute('height', '72.8');
+    line.setAttribute('class', 'slfq-pre-ring-line');
+    line.setAttribute('x', '1.4');
+    line.setAttribute('y', '1.4');
+    line.setAttribute('width', '53.2');
+    line.setAttribute('height', '53.2');
+    line.setAttribute('rx', '4.2');
+    line.setAttribute('ry', '4.2');
+    ring.appendChild(line);
+    now.appendChild(ring);
+    count.className = 'slfq-pre-count';
+    now.appendChild(count);
+    now.appendChild(newPreMark(doc, isCancellable));
+    now.__slfqRing = ring;
+    now.__slfqCount = count;
+  }
+
+  // The order's icon, or its name when it has none, in the HUD's wrapper, which flies in when asked.
+  function newPreContent(doc, order, showsIcon, flies) {
+    var wrapper = doc.createElement('div');
     var content;
+
+    wrapper.className = 'slfq-pre-content' + (flies ? ' slfq-pre-pop' : '');
+
+    // The HUD drops the fly-in once it ends; kept on, it would lift the order over the cross.
+    if (flies) wrapper.addEventListener('animationend', function () { wrapper.classList.toggle('slfq-pre-pop', false); });
 
     if (showsIcon) {
       content = doc.createElement('img');
@@ -651,13 +706,129 @@
       content.textContent = order.name;
     }
 
-    now.appendChild(content);
+    wrapper.appendChild(content);
 
+    return wrapper;
+  }
+
+  function newPreMark(doc, isCancellable) {
     var mark = doc.createElement('div');
 
     mark.className = 'slfq-pre-x';
-    mark.textContent = isCancellable ? '\u2715' : '\uD83D\uDD12';
-    now.appendChild(mark);
+    mark.textContent = isCancellable ? '✕' : '🔒';
+
+    return mark;
+  }
+
+  // The HUD's ring and count as the plugin read them from the game: the share of the order still to go, drained to
+  // none over the time it takes, the way the HUD's progress engine drains it, or held when that time is 0.
+  function startPreRing(page, now, order) {
+    var ring = now.__slfqRing;
+    var shows = !!ring && !!order && !!order.showProgress;
+    var share = Number(order && order.progressPercent);
+    var total = Number(order && order.progressDurationMs);
+
+    share = share > 0 ? Math.min(share, 1) : 0;
+    total = total > 0 ? total : 0;
+    now.__slfqRun = shows ? { start: share, total: total, remaining: total, last: 0 } : null;
+    now.__slfqShare = -1;
+
+    if (now.__slfqCount) {
+      var text = order && order.countText ? String(order.countText) : '';
+
+      now.__slfqCount.textContent = text;
+      now.__slfqCount.style.display = text ? '' : 'none';
+    }
+
+    if (!ring) return;
+
+    ring.style.display = shows ? '' : 'none';
+
+    if (!shows) return;
+
+    showPreRing(now, share);
+    askPreRing(page, now);
+  }
+
+  function showPreRing(now, share) {
+    var step = Math.round(share / RING_STEP) * RING_STEP;
+
+    if (step === now.__slfqShare) return;
+
+    now.__slfqShare = step;
+    now.__slfqRing.children[0].style.strokeDashoffset = String(RING_DASH * (1 - step));
+  }
+
+  // A frame only while the ring drains and the game runs, where the HUD's engine asks for one every frame.
+  function askPreRing(page, now) {
+    var run = now.__slfqRun;
+
+    if (!run || run.remaining <= 0 || page.__slfqPaused || now.__slfqTicking) return;
+
+    now.__slfqTicking = true;
+    page.requestAnimationFrame(function (time) {
+      now.__slfqTicking = false;
+
+      try {
+        tickPreRing(page, now, time);
+      } catch (e) {
+        diag('countdown ring', e);
+      }
+    });
+  }
+
+  function tickPreRing(page, now, time) {
+    var run = now.__slfqRun;
+
+    if (!run || !now.isConnected) return;
+
+    if (run.last) {
+      run.remaining = Math.max(0, run.remaining - (time - run.last) * (page.__slfqScale || 1));
+      showPreRing(now, run.total > 0 ? run.start * (run.remaining / run.total) : 0);
+    }
+
+    run.last = time;
+    askPreRing(page, now);
+  }
+
+  // The game tells this page when it pauses and how fast it runs; the ring follows as the HUD's does.
+  function listenPre(page) {
+    if (page.__slfqPre) return;
+
+    page.__slfqPre = true;
+    page.addEventListener('message', function (event) {
+      try {
+        takeClock(page, event.data);
+      } catch (e) {
+        diag('countdown ring', e);
+      }
+    }, true);
+  }
+
+  function takeClock(page, message) {
+    if (!message || (message.type !== PAUSE_MESSAGE && message.type !== SCALE_MESSAGE)) return;
+
+    var data = typeof message.data === 'string' && message.data ? JSON.parse(message.data) : message.data;
+
+    if (!data) return;
+
+    if (message.type === SCALE_MESSAGE) {
+      if (data.timeScale > 0) page.__slfqScale = Number(data.timeScale);
+
+      return;
+    }
+
+    if (data.isPause === undefined) return;
+
+    page.__slfqPaused = !!data.isPause;
+
+    var now = page.document && page.document.__slfqPreNow;
+
+    // As the HUD's engine does, the time paused is not counted.
+    if (!now || !now.__slfqRun) return;
+
+    now.__slfqRun.last = 0;
+    askPreRing(page, now);
   }
 
   // As on the HUD, a click on the big box stops the order being worked on, when the game lets it be stopped.
@@ -713,7 +884,8 @@
     return slot;
   }
 
-  // A slot is drawn again only when what it shows changed.
+  // As a HUD slot: the order flies in when the slot was empty, and on hover a cross or a lock. Drawn again only when
+  // what it shows changed.
   function drawPreSlot(slot, order) {
     var isFilled = !!(order.icon || order.name);
     var isCancellable = isFilled && !!order.isCancellable;
@@ -724,35 +896,19 @@
 
     if (slot.__slfqKey === key) return;
 
+    var wasEmpty = !slot.__slfqKey;
+
     slot.__slfqKey = key;
-    slot.className = 'queue-slot' + (isFilled ? ' filled' : '') + (isCancellable ? ' cancellable' : '') + (isFilled && order.isAiDriven ? ' ai-driven' : '');
+    slot.className = 'queue-slot' + (isFilled ? (isCancellable ? ' filled cancellable' : ' filled uncancellable') : '') + (isFilled && order.isAiDriven ? ' ai-driven' : '');
 
     while (slot.children.length > 0) slot.removeChild(slot.children[0]);
 
     if (!isFilled) return;
 
     var doc = slot.ownerDocument;
-    var content;
 
-    if (showsIcon) {
-      content = doc.createElement('img');
-      content.className = 'slfq-pre-img';
-      content.src = order.icon;
-    } else {
-      content = doc.createElement('span');
-      content.className = 'slfq-pre-text';
-      content.textContent = order.name;
-    }
-
-    slot.appendChild(content);
-
-    if (!isCancellable) return;
-
-    var cross = doc.createElement('div');
-
-    cross.className = 'slfq-pre-x';
-    cross.textContent = '\u2715';
-    slot.appendChild(cross);
+    slot.appendChild(newPreContent(doc, order, showsIcon, wasEmpty));
+    slot.appendChild(newPreMark(doc, isCancellable));
   }
 
   // As on the HUD bar, a click cancels a filled, cancellable order by its parent id. A slot out of sight takes none.

@@ -107,9 +107,33 @@ public class CountdownQueueTests
     public void The_order_being_worked_on_is_written_as_a_bar_entry_the_page_reads()
     {
         Assert.Equal(
-            "{\"icon\":\"axe\",\"name\":\"Chop \\\"oak\\\"\",\"showIcon\":true,\"isCancellable\":false,\"isAiDriven\":true,\"parentId\":12345678901}",
+            "{\"icon\":\"axe\",\"name\":\"Chop \\\"oak\\\"\",\"showIcon\":true,\"isCancellable\":false,\"isAiDriven\":true,\"parentId\":12345678901,\"showProgress\":false,\"progressPercent\":0,\"progressDurationMs\":0,\"countText\":\"\"}",
             QueueBar.CurrentText(new CurrentOrder("axe", "Chop \"oak\"", IsCancellable: false, IsAuto: true, ParentId: 12345678901)));
         Assert.Equal("null", QueueBar.CurrentText(null));
+    }
+
+    [Fact]
+    public void The_ring_and_count_are_written_for_the_page_to_draw()
+    {
+        var storing = new CurrentOrder("box", "Store", IsCancellable: true, IsAuto: false, ParentId: 9, new OrderProgress(true, 0.75f, 1500f, "1/4"));
+
+        Assert.EndsWith(
+            ",\"showProgress\":true,\"progressPercent\":0.75,\"progressDurationMs\":1500,\"countText\":\"1/4\"}",
+            QueueBar.CurrentText(storing));
+    }
+
+    // The ring moves on as the task or the store count does, while the waiting orders stay as they were.
+    [Theory]
+    [InlineData(901L, 40L, 0)]
+    [InlineData(900L, 41L, 0)]
+    [InlineData(900L, 40L, 1)]
+    public void A_new_action_task_or_store_count_reads_the_queue(long action, long task, int counts)
+    {
+        var queue = new CountdownQueue();
+
+        queue.HasMoved(new QueueStamp(500, 3, 2, 800, 900, 40, 0));
+
+        Assert.True(queue.HasMoved(new QueueStamp(500, 3, 2, 800, action, task, counts)));
     }
 
     [Fact]

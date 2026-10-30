@@ -4,10 +4,12 @@ using System.Globalization;
 namespace FullQueue.Core;
 
 /// <summary>
-/// What the player's queue was built from at one sync: the game's list of orders, its change count and size, and the
-/// order being worked on. The game rebuilds the queue's id lists on every frame, so only these say it really changed.
+/// What the player's queue was built from at one sync: the game's list of orders, its change count and size, the
+/// order being worked on, the action and task running for it, and the store counts' change count. The game rebuilds
+/// the queue's id lists on every frame, so only these say it really changed. The task changes when a new step of the
+/// order starts, which is when the big box's ring starts over.
 /// </summary>
-public readonly record struct QueueStamp(long List, int Version, int Size, long Current);
+public readonly record struct QueueStamp(long List, int Version, int Size, long Current, long Action = 0, long Task = 0, int Counts = 0);
 
 /// <summary>
 /// The waiting orders last sent to the countdown screen's queue bar. The game syncs the queue every frame, so a cheap

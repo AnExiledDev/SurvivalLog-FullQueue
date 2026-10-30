@@ -71,7 +71,7 @@ public class CountdownBarPageTests
         page.PluginSendsCountdownWith(2, new CurrentOrder("iconNow", "cutting wood", IsCancellable: true, IsAuto: true, ParentId: 77));
         page.NextCountdownFrame();
 
-        Assert.Equal("iconNow", page.Text("preNowBox(countdown).children[0].src"));
+        Assert.Equal("iconNow", page.Text("preNowShown(countdown)"));
         Assert.True(page.Is("preNowBox(countdown).classList.contains('cancellable') && preNowBox(countdown).classList.contains('ai-driven')"));
         Assert.False(page.Is("preNowBox(countdown).classList.contains('empty')"));
         Assert.Equal("icon1,icon2,,,", page.Text("preShown(countdown)"));
@@ -85,9 +85,9 @@ public class CountdownBarPageTests
 
         page.PluginSendsCountdownWith(0, new CurrentOrder("", "sleeping", IsCancellable: false, IsAuto: false, ParentId: 78));
 
-        Assert.Equal("sleeping", page.Text("preNowBox(countdown).children[0].textContent"));
+        Assert.Equal("sleeping", page.Text("preNowShown(countdown)"));
         Assert.True(page.Is("preNowBox(countdown).classList.contains('uncancellable')"));
-        Assert.Equal("\uD83D\uDD12", page.Text("preNowBox(countdown).children[1].textContent"));
+        Assert.Equal("\uD83D\uDD12", page.Text("preMark(preNowBox(countdown))"));
         Assert.Equal("", page.ClickCountdownNow());
     }
 
@@ -122,6 +122,114 @@ public class CountdownBarPageTests
         Assert.Equal(",,,,", page.Text("preShown(countdown)"));
         Assert.True(page.Is("countdown.document.body.classList.contains('slfq-pre-on')"));
         Assert.Equal("205.66px", page.Text("sheetStyle(preStyleOn(countdown), 'body.slfq-pre-on .buff-container', 'bottom')"));
+    }
+
+    private static CurrentOrder Chopping(OrderProgress progress) =>
+        new("iconNow", "cutting wood", IsCancellable: true, IsAuto: false, ParentId: 77, progress);
+
+    // Half of a 1 second task left: the ring shows half (dash offset 206 * 0.5) and drains to none as the HUD's does.
+    private static PageScript CountdownChopping()
+    {
+        var page = CountdownWithScript();
+
+        page.PluginSendsCountdownWith(1, Chopping(new OrderProgress(true, 0.5f, 1000f, "")));
+        page.NextCountdownFrame();
+
+        return page;
+    }
+
+    [Fact]
+    public void The_big_box_ring_drains_over_the_time_the_order_has_left()
+    {
+        var page = CountdownChopping();
+
+        Assert.Equal("103", page.Text("preRing(countdown)"));
+
+        page.Run("nextFrame(countdown, 500)");
+        Assert.Equal("154.5", page.Text("preRing(countdown)"));
+
+        page.Run("nextFrame(countdown, 600)");
+        Assert.Equal("206", page.Text("preRing(countdown)"));
+        Assert.Equal(0.0, page.Number("countdown.frames.length"));
+    }
+
+    [Fact]
+    public void The_ring_stops_while_the_game_is_paused_and_counts_none_of_that_time()
+    {
+        var page = CountdownChopping();
+
+        page.Run("gameSendsCountdown(countdown, 'WebUI_CoreUI0_PauseMsg', { isPause: true })");
+        page.Run("nextFrame(countdown, 500)");
+
+        Assert.Equal("103", page.Text("preRing(countdown)"));
+        Assert.Equal(0.0, page.Number("countdown.frames.length"));
+
+        page.Run("gameSendsCountdown(countdown, 'WebUI_CoreUI0_PauseMsg', { isPause: false })");
+        page.Run("nextFrame(countdown, 5000)");
+        page.Run("nextFrame(countdown, 500)");
+
+        Assert.Equal("154.5", page.Text("preRing(countdown)"));
+    }
+
+    [Fact]
+    public void The_ring_runs_at_the_game_speed()
+    {
+        var page = CountdownChopping();
+
+        page.Run("gameSendsCountdown(countdown, 'WebUI_CoreUI0_TimeScaleMsg', { timeScale: 2 })");
+        page.Run("nextFrame(countdown, 250)");
+
+        Assert.Equal("154.5", page.Text("preRing(countdown)"));
+    }
+
+    [Fact]
+    public void An_order_storing_items_shows_the_count_and_a_still_ring()
+    {
+        var page = CountdownWithScript();
+
+        page.PluginSendsCountdownWith(0, Chopping(new OrderProgress(true, 0.75f, 0f, "1/4")));
+        page.NextCountdownFrame();
+
+        Assert.Equal("1/4", page.Text("preCount(countdown)"));
+        Assert.Equal("51.5", page.Text("preRing(countdown)"));
+        Assert.Equal(0.0, page.Number("countdown.frames.length"));
+    }
+
+    [Fact]
+    public void An_order_without_progress_shows_no_ring_and_no_count()
+    {
+        var page = CountdownChopping();
+
+        page.PluginSendsCountdownWith(1, Chopping(OrderProgress.None));
+
+        Assert.Equal("hidden", page.Text("preRing(countdown)"));
+        Assert.Equal("", page.Text("preCount(countdown)"));
+        Assert.Equal("iconNow", page.Text("preNowShown(countdown)"));
+    }
+
+    // As in the HUD: an order flies into an empty box, while the next order in a box already busy just takes its place.
+    [Fact]
+    public void An_order_flies_in_only_when_the_box_was_empty()
+    {
+        var page = CountdownChopping();
+
+        Assert.True(page.Is("preNowBox(countdown).children[0].classList.contains('slfq-pre-pop')"));
+
+        page.Run("preNowBox(countdown).children[0].dispatch('animationend', {})");
+        Assert.False(page.Is("preNowBox(countdown).children[0].classList.contains('slfq-pre-pop')"));
+
+        page.PluginSendsCountdownWith(1, new CurrentOrder("iconNext", "digging", IsCancellable: true, IsAuto: false, ParentId: 78));
+        Assert.Equal("iconNext", page.Text("preNowShown(countdown)"));
+        Assert.False(page.Is("preNowBox(countdown).children[0].classList.contains('slfq-pre-pop')"));
+    }
+
+    [Fact]
+    public void A_waiting_order_shows_a_cross_on_hover()
+    {
+        var page = CountdownShowing(1);
+
+        Assert.Equal("✕", page.Text("preMark(preBar(countdown).slots[0])"));
+        Assert.Equal("", page.Text("preMark(preBar(countdown).slots[1])"));
     }
 
     [Fact]

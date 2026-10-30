@@ -2,7 +2,7 @@
 
 ## 0.4.0
 
-- The countdown before the disaster now has a queue bar. The game shows none there, so the mod adds one in the bottom left corner, under the buttons there, which move up to make room. Like the bar after the disaster, it starts with a big box for what your character is doing now, then the arrow, then the waiting orders. Click an order, or the big box, to cancel it. It goes away when the disaster starts.
+- The countdown before the disaster now has a queue bar. The game shows none there, so the mod adds one in the bottom left corner, under the buttons there, which move up to make room. Like the bar after the disaster, it starts with a big box for what your character is doing now, with the same ring that shows how far along it is (and how many items are put away when storing), then the arrow, then the waiting orders. Click an order, or the big box, to cancel it. It goes away when the disaster starts.
 - Made for Survival Log 1.1.20151.
 
 ## 0.3.2

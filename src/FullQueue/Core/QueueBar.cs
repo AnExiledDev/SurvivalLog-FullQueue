@@ -18,8 +18,11 @@ public abstract record QueueSlot
     public sealed record Blank : QueueSlot;
 }
 
-/// <summary>The order the character is working on: what the HUD's big box before the queue bar shows.</summary>
-public sealed record CurrentOrder(string Icon, string Name, bool IsCancellable, bool IsAuto, long ParentId);
+/// <summary>
+/// The order the character is working on: what the HUD's big box before the queue bar shows, with its ring and count
+/// (none when Progress is null).
+/// </summary>
+public sealed record CurrentOrder(string Icon, string Name, bool IsCancellable, bool IsAuto, long ParentId, OrderProgress? Progress = null);
 
 /// <summary>
 /// The text the game hands the queue bar: a JSON list with one entry per slot. The game writes the first five
@@ -61,7 +64,8 @@ public static class QueueBar
 
     /// <summary>
     /// The order being worked on, for the big box before the countdown bar, in the shape of a bar entry: "null" when the
-    /// character works on nothing. Its cross shows only for orders the game lets the player stop, as on the HUD.
+    /// character works on nothing. Its cross shows only for orders the game lets the player stop, as on the HUD. The ring
+    /// and count fields are the ones the HUD page gets with its big box (WebUI_CoreUI1_ActionMsg).
     /// </summary>
     public static string CurrentText(CurrentOrder? current)
     {
@@ -77,6 +81,14 @@ public static class QueueBar
         text.Append(",\"isCancellable\":").Append(Bool(current.IsCancellable));
         text.Append(",\"isAiDriven\":").Append(Bool(current.IsAuto));
         text.Append(",\"parentId\":").Append(current.ParentId.ToString(CultureInfo.InvariantCulture));
+
+        var progress = current.Progress ?? OrderProgress.None;
+
+        text.Append(",\"showProgress\":").Append(Bool(progress.Show));
+        text.Append(",\"progressPercent\":").Append(progress.Percent.ToString("R", CultureInfo.InvariantCulture));
+        text.Append(",\"progressDurationMs\":").Append(progress.DurationMs.ToString("R", CultureInfo.InvariantCulture));
+        text.Append(",\"countText\":");
+        AppendString(text, progress.Count ?? "");
 
         return text.Append('}').ToString();
     }

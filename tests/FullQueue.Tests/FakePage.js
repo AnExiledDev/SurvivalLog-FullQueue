@@ -96,7 +96,12 @@ var FakeElement = class {
 
   getAttribute(name) { return this.hasAttribute(name) ? this.attrs[name] : null; }
 
-  setAttribute(name, value) { this.attrs[name] = String(value); }
+  // As in a browser, an svg element's class is its class attribute.
+  setAttribute(name, value) {
+    this.attrs[name] = String(value);
+
+    if (name === 'class') this.className = value;
+  }
 
   removeAttribute(name) { delete this.attrs[name]; }
 
@@ -413,11 +418,13 @@ function draw(page) {
 }
 
 // The next animation frame of the page.
-function nextFrame(page) {
+// The browser's next frame, ms after the last one (16 when not given), with its timestamp as a browser passes it.
+function nextFrame(page, ms) {
   var callbacks = page.frames;
 
+  page.time = (page.time || 1000) + (ms === undefined ? 16 : ms);
   page.frames = [];
-  callbacks.forEach(function (callback) { callback(); });
+  callbacks.forEach(function (callback) { callback(page.time); });
 }
 
 // The mouse wheel over the bar. A browser fires scroll after the bar's scroll position changes. Returns whether the
@@ -569,10 +576,14 @@ function openCoreUI0() {
     evals: 0,
     parses: 0,
     frames: [],
+    listeners: [],
     requestAnimationFrame: function (callback) {
       page.frames.push(callback);
 
       return page.frames.length;
+    },
+    addEventListener: function (type, listener) {
+      if (type === 'message') page.listeners.push(listener);
     }
   };
 
@@ -599,6 +610,47 @@ function openCoreUI0() {
 
 function closeCoreUI0(page) { document.body.removeChild(page.frame); }
 
+// A message the game sends CoreUI0, as its web view posts it: the data as a JSON string.
+function gameSendsCountdown(page, type, data) {
+  var event = { data: { type: type, data: JSON.stringify(data) } };
+
+  page.listeners.slice().forEach(function (listener) { listener(event); });
+}
+
+// The big box's ring: its dash offset, or "hidden" when it is not shown.
+function preRing(page) {
+  var ring = findAll(preNowBox(page), '.slfq-pre-ring')[0];
+
+  if (!ring) return 'none';
+  if (ring.style.display === 'none') return 'hidden';
+
+  return String(Math.round(Number(ring.children[0].style.strokeDashoffset) * 100) / 100);
+}
+
+// The big box's count, or "" when none shows.
+function preCount(page) {
+  var count = findAll(preNowBox(page), '.slfq-pre-count')[0];
+
+  return count && count.style.display !== 'none' ? count.textContent : '';
+}
+
+// The order the big box shows: its icon, its name, or nothing.
+function preNowShown(page) {
+  var wrapper = preNowBox(page).children[0];
+  var content = wrapper && wrapper.children[0];
+
+  if (!content) return '';
+
+  return content.tagName === 'img' ? content.src : content.textContent;
+}
+
+// The big box's or a slot's hover mark: the cross, the lock, or nothing.
+function preMark(element) {
+  var mark = findAll(element, '.slfq-pre-x')[0];
+
+  return mark ? mark.textContent : '';
+}
+
 // The script's countdown bar, found without counting as the script's search.
 function preBar(page) { return findAll(page.document.documentElement, '.slfq-pre')[0] || null; }
 
@@ -617,7 +669,7 @@ function clickPreNow(page) {
 // What each slot of the countdown bar shows: its icon, its name, or nothing.
 function preShown(page) {
   return preBar(page).slots.map(function (slot) {
-    var content = slot.children[0];
+    var content = slot.children[0] && slot.children[0].children[0];
 
     if (!content) return '';
 
