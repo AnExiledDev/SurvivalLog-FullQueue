@@ -4,8 +4,14 @@ using System.Globalization;
 namespace FullQueue.Core;
 
 /// <summary>
-/// The waiting orders last sent to the countdown screen's queue bar. The game tells the bar about the queue on every
-/// change of the current order too, so the orders are kept to send the bar a new list only when they changed.
+/// What the player's queue was built from at one sync: the game's list of orders, its change count and size, and the
+/// order being worked on. The game rebuilds the queue's id lists on every frame, so only these say it really changed.
+/// </summary>
+public readonly record struct QueueStamp(long List, int Version, int Size, long Current);
+
+/// <summary>
+/// The waiting orders last sent to the countdown screen's queue bar. The game syncs the queue every frame, so a cheap
+/// stamp says first whether anything moved, and the orders are kept to send the bar a new list only when they changed.
 /// </summary>
 public sealed class CountdownQueue
 {
@@ -13,6 +19,19 @@ public sealed class CountdownQueue
     private readonly List<long> _parentIds = new();
     private readonly List<int> _sources = new();
     private bool _isKnown;
+    private QueueStamp _stamp;
+    private bool _hasStamp;
+
+    /// <summary>Whether the queue may have changed since the last stamp, and keeps this one if so.</summary>
+    public bool HasMoved(QueueStamp stamp)
+    {
+        if (_hasStamp && _stamp == stamp) return false;
+
+        _stamp = stamp;
+        _hasStamp = true;
+
+        return true;
+    }
 
     /// <summary>Whether these orders differ from the last ones taken, and takes them if so.</summary>
     public bool Take(IReadOnlyList<int> actionIds, IReadOnlyList<long> parentIds, IReadOnlyList<int> sources)
@@ -28,7 +47,11 @@ public sealed class CountdownQueue
     }
 
     /// <summary>A new game: whatever comes next is sent, even the same orders as before.</summary>
-    public void Forget() => _isKnown = false;
+    public void Forget()
+    {
+        _isKnown = false;
+        _hasStamp = false;
+    }
 
     private static bool Same<T>(List<T> kept, IReadOnlyList<T> now)
     {

@@ -54,6 +54,41 @@ public class CountdownQueueTests
         Assert.True(queue.Take(TwoActions, TwoParents, TwoSources));
     }
 
+    // The game syncs the queue every frame; reading the orders through the game each frame would cost for nothing.
+    [Fact]
+    public void A_queue_synced_again_unchanged_is_not_read_again()
+    {
+        var queue = new CountdownQueue();
+
+        Assert.True(queue.HasMoved(new QueueStamp(List: 500, Version: 3, Size: 2, Current: 900)));
+        Assert.False(queue.HasMoved(new QueueStamp(List: 500, Version: 3, Size: 2, Current: 900)));
+    }
+
+    [Theory]
+    [InlineData(501, 3, 2, 900)]
+    [InlineData(500, 4, 2, 900)]
+    [InlineData(500, 3, 1, 900)]
+    [InlineData(500, 3, 2, 0)]
+    public void A_new_list_a_change_or_a_new_current_order_reads_the_queue(long list, int version, int size, long current)
+    {
+        var queue = new CountdownQueue();
+
+        queue.HasMoved(new QueueStamp(500, 3, 2, 900));
+
+        Assert.True(queue.HasMoved(new QueueStamp(list, version, size, current)));
+    }
+
+    [Fact]
+    public void A_new_game_reads_the_queue_even_with_the_same_stamp()
+    {
+        var queue = new CountdownQueue();
+
+        queue.HasMoved(new QueueStamp(500, 3, 2, 900));
+        queue.Forget();
+
+        Assert.True(queue.HasMoved(new QueueStamp(500, 3, 2, 900)));
+    }
+
     [Fact]
     public void A_cancel_message_names_the_parent_id_to_cancel()
     {
