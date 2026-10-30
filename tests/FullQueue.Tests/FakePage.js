@@ -100,9 +100,13 @@ var FakeElement = class {
 
   removeAttribute(name) { delete this.attrs[name]; }
 
+  // As in a browser, an element and everything in it belong to the document it is put in.
   appendChild(child) {
+    var owner = this.ownerDocument;
+
     child.parentElement = this;
-    child.ownerDocument = this.ownerDocument;
+    child.ownerDocument = owner;
+    descendantsOf(child).forEach(function (inner) { inner.ownerDocument = owner; });
     this.children.push(child);
 
     return child;
@@ -573,6 +577,13 @@ function openCoreUI0() {
   };
 
   doc.createElement = function (tagName) { return new FakePreElement(tagName); };
+  doc.createElementNS = function (namespace, tagName) {
+    var element = new FakePreElement(tagName);
+
+    element.namespaceURI = namespace;
+
+    return element;
+  };
   doc.defaultView = page;
   frame.src = 'https://webui.local/UI/CoreUI0/CoreUI0.html';
   frame.contentWindow = page;
@@ -590,6 +601,18 @@ function closeCoreUI0(page) { document.body.removeChild(page.frame); }
 
 // The script's countdown bar, found without counting as the script's search.
 function preBar(page) { return findAll(page.document.documentElement, '.slfq-pre')[0] || null; }
+
+function preRow(page) { return findAll(page.document.documentElement, '.slfq-pre-row')[0] || null; }
+
+function preNowBox(page) { return findAll(page.document.documentElement, '.slfq-pre-now')[0] || null; }
+
+// A click on the big box with the order being worked on.
+function clickPreNow(page) {
+  posted = [];
+  preNowBox(page).dispatch('click', {});
+
+  return posted.join(';');
+}
 
 // What each slot of the countdown bar shows: its icon, its name, or nothing.
 function preShown(page) {

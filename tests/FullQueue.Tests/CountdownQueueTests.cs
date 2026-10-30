@@ -89,6 +89,36 @@ public class CountdownQueueTests
         Assert.True(queue.HasMoved(new QueueStamp(500, 3, 2, 900)));
     }
 
+    // The big box shows the order being worked on, which moves on while the waiting orders can stay as they were.
+    [Fact]
+    public void A_new_order_being_worked_on_is_sent_even_with_the_same_waiting_orders()
+    {
+        var queue = new CountdownQueue();
+        var chopping = new CurrentOrder("axe", "Chop", IsCancellable: true, IsAuto: false, ParentId: 50);
+
+        queue.Take(TwoActions, TwoParents, TwoSources, chopping);
+
+        Assert.False(queue.Take(TwoActions, TwoParents, TwoSources, chopping with { }));
+        Assert.True(queue.Take(TwoActions, TwoParents, TwoSources, chopping with { ParentId = 51 }));
+        Assert.True(queue.Take(TwoActions, TwoParents, TwoSources, null));
+    }
+
+    [Fact]
+    public void The_order_being_worked_on_is_written_as_a_bar_entry_the_page_reads()
+    {
+        Assert.Equal(
+            "{\"icon\":\"axe\",\"name\":\"Chop \\\"oak\\\"\",\"showIcon\":true,\"isCancellable\":false,\"isAiDriven\":true,\"parentId\":12345678901}",
+            QueueBar.CurrentText(new CurrentOrder("axe", "Chop \"oak\"", IsCancellable: false, IsAuto: true, ParentId: 12345678901)));
+        Assert.Equal("null", QueueBar.CurrentText(null));
+    }
+
+    [Fact]
+    public void The_call_hands_the_page_the_queue_and_the_order_being_worked_on()
+    {
+        Assert.Equal("window.__slfqPre&&window.__slfqPre([],null)", CountdownPage.ShowCall(CountdownPage.EmptyQueue));
+        Assert.Equal("window.__slfqPre&&window.__slfqPre([],{\"a\":1})", CountdownPage.ShowCall(CountdownPage.EmptyQueue, "{\"a\":1}"));
+    }
+
     [Fact]
     public void A_cancel_message_names_the_parent_id_to_cancel()
     {

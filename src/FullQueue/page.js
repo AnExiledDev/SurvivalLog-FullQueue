@@ -6,8 +6,9 @@
 // in sight stop taking clicks, so they cannot block clicks on the world behind them. A CoreUI1 page that loads while
 // more than five wait gets the whole queue back from the last update. With five or fewer the bar is left exactly as
 // the game draws it. Before the disaster the game shows the countdown screen (CoreUI0), which has no queue bar, so the
-// plugin hands this script the queue itself and the script draws a bar of its own in that screen's bottom left corner,
-// below the tools and buttons there, which move up to make room. A click on an order there cancels it. The plugin asks
+// plugin hands this script the queue and the order being worked on, and the script draws the HUD's row of its own (the
+// big box with that order, the arrow, then the bar) in that screen's bottom left corner, below the tools and buttons
+// there, which move up to make room. A click on an order there, or on the big box, cancels it. The plugin asks
 // every couple of seconds whether the script still runs and sends it only when it does not; the guard below makes a
 // second copy return at once all the same.
 (function () {
@@ -430,10 +431,33 @@
   // The HUD bar's look at this page's size: the HUD page is zoomed 1.3 and this one is not, so every size is the HUD's
   // times 1.3. This page makes every box border-box. Every rule needs the bar's class, except the one that moves the
   // status tags up with the buttons beside them while the bar is in.
+  // As on the HUD, the bar is the last of a row: the big box with the order being worked on, the yellow arrow, then the
+  // queue.
+  var PRE_ROW = 'slfq-pre-row';
+  var PRE_NOW = 'slfq-pre-now';
   var PRE_BAR = '.' + PRE;
   var PRE_SLOT = PRE_BAR + ' > .queue-slot';
+  var NOW_BOX = '.' + PRE_NOW;
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var ARROW_PATH = 'M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z';
   var PRE_CSS = [
-    PRE_BAR + '{display:flex;align-self:flex-start;gap:2.73px;background-color:rgba(40,40,40,0.9);border:1px solid rgba(255,255,255,0.12);border-radius:7.28px;padding:3.64px;box-shadow:0 1.82px 4.55px rgba(0,0,0,0.5)}',
+    '.' + PRE_ROW + '{display:flex;flex-direction:row;align-items:flex-end;gap:13.65px;align-self:flex-start}',
+    NOW_BOX + '{position:relative;flex-shrink:0;width:72.8px;height:72.8px;background-color:rgba(40,40,40,0.9);border-radius:7.28px;box-shadow:0 3.64px 7.28px rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;transition:all 0.2s;border:1px solid transparent}',
+    NOW_BOX + '.cancellable{cursor:pointer}',
+    NOW_BOX + '.uncancellable{cursor:not-allowed}',
+    NOW_BOX + '.ai-driven{border:1px solid #4A90D9;box-shadow:0 0 7.8px rgba(74,144,217,0.5)}',
+    NOW_BOX + '.cancellable:hover{border:1px solid rgba(255,255,255,0.5)}',
+    NOW_BOX + '.cancellable:active{transform:scale(0.95);filter:brightness(0.9)}',
+    NOW_BOX + '.empty{background-color:rgba(30,30,30,0.6);border:1px dashed rgba(255,255,255,0.2)}',
+    NOW_BOX + ' > .slfq-pre-img{width:52px;height:52px;object-fit:contain;filter:brightness(0.85)}',
+    NOW_BOX + ' > .slfq-pre-text{font-size:18.2px;font-weight:bold;color:white;text-shadow:1px 1px 2px black;text-align:center;max-width:62.4px;overflow:hidden}',
+    NOW_BOX + ' > .slfq-pre-x{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.15s ease-in-out;z-index:10;font:bold 31.2px Arial,sans-serif;border-radius:inherit;background-color:rgba(50,50,50,0.85);color:#ddd;pointer-events:none}',
+    NOW_BOX + '.uncancellable > .slfq-pre-x{background-color:rgba(80,20,20,0.8);color:#ffcccc;font-size:23.4px}',
+    NOW_BOX + ':hover > .slfq-pre-x{opacity:1}',
+    '.slfq-pre-flow{display:flex;align-items:center;gap:5.46px}',
+    '.slfq-pre-arrow{color:#FFC107;display:flex;align-items:center;justify-content:center;animation:slfq-pre-pulse 1.5s infinite ease-in-out;opacity:0.8;filter:drop-shadow(0 0 2px rgba(0,0,0,0.8))}',
+    '@keyframes slfq-pre-pulse{0%{transform:translateX(2.6px);opacity:0.5}50%{transform:translateX(0);opacity:1}100%{transform:translateX(2.6px);opacity:0.5}}',
+    PRE_BAR + '{display:flex;gap:2.73px;background-color:rgba(40,40,40,0.9);border:1px solid rgba(255,255,255,0.12);border-radius:7.28px;padding:3.64px;box-shadow:0 1.82px 4.55px rgba(0,0,0,0.5)}',
     PRE_SLOT + '{flex-shrink:0;width:41.86px;height:41.86px;background-color:rgba(255,255,255,0.05);border-radius:3.64px;display:flex;align-items:center;justify-content:center;position:relative;transition:all 0.2s}',
     PRE_SLOT + '.filled{background-color:rgba(70,70,70,1);box-shadow:inset 0 0 4px rgba(0,0,0,0.5)}',
     PRE_SLOT + '.ai-driven{border:1px solid #4A90D9;box-shadow:inset 0 0 4px rgba(74,144,217,0.4)}',
@@ -449,20 +473,25 @@
     PRE_BAR + '.' + LONG + ' > .queue-slot[' + BEFORE + ']::before{content:attr(' + BEFORE + ');left:0}',
     PRE_BAR + '.' + LONG + ' > .queue-slot[' + AFTER + ']::after{content:attr(' + AFTER + ');right:0}',
 
-    // The tags sit beside the bag button: the bar is 51.14px tall with the corner's 15px gap above it.
-    'body.' + PRE_ON + ' .buff-container{bottom:184px}'
+    // The tags sit beside the bag button: the row is the big box's 72.8px tall with the corner's 15px gap above it.
+    'body.' + PRE_ON + ' .buff-container{bottom:205.66px}'
   ].join('\n');
 
   // The waiting orders the plugin last sent, in the game's bar text shape, or null outside the countdown.
   var preQueue = null;
 
+  // The order being worked on, as a bar entry, or null when there is none.
+  var preNow = null;
+
   // The frame the countdown screen was last found in, kept while it stays in the document and holds it.
   var preFrame = null;
 
-  // The plugin's call: the waiting orders, an empty list for a new game, or null once the HUD shows the queue.
-  window.__slfqPre = function (list) {
+  // The plugin's call: the waiting orders, an empty list for a new game, or null once the HUD shows the queue; and the
+  // order being worked on, or null.
+  window.__slfqPre = function (list, current) {
     try {
       preQueue = Array.isArray(list) ? list : null;
+      preNow = current && typeof current === 'object' ? current : null;
       patchCountdown();
     } catch (e) {
       diag('countdown queue', e);
@@ -509,6 +538,13 @@
 
       if (!bar) return;
 
+      var now = doc.__slfqPreNow;
+
+      if (now.__slfqDrawn !== preNow) {
+        drawPreNow(now, preNow);
+        now.__slfqDrawn = preNow;
+      }
+
       if (bar.__slfqDrawn !== preQueue) {
         drawPreBar(bar, preQueue);
         bar.__slfqDrawn = preQueue;
@@ -521,29 +557,119 @@
     }
   }
 
-  // The bar goes last in the bottom left corner's column, so it takes the corner and the tools and buttons move up.
-  // Kept on the document, so a poll looks the corner up only when the page lost the bar.
+  // The row goes last in the bottom left corner's column, so it takes the corner and the tools and buttons move up.
+  // Kept on the document, so a poll looks the corner up only when the page lost the row.
   function preBarOf(doc) {
-    var bar = doc.__slfqPreBar;
+    var row = doc.__slfqPreRow;
     var corner = doc.__slfqPreCorner;
 
-    if (bar && corner && corner.isConnected && bar.parentElement === corner) return bar;
+    if (row && corner && corner.isConnected && row.parentElement === corner) return doc.__slfqPreBar;
 
     corner = doc.querySelector('.bottom-left');
 
     if (!corner || !doc.body) return null;
 
-    if (!bar) {
-      bar = doc.createElement('div');
-      bar.className = PRE;
-    }
+    if (!row) row = newPreRow(doc);
 
-    corner.appendChild(bar);
+    corner.appendChild(row);
     doc.body.classList.toggle(PRE_ON, true);
-    doc.__slfqPreBar = bar;
+    doc.__slfqPreRow = row;
     doc.__slfqPreCorner = corner;
 
-    return bar;
+    return doc.__slfqPreBar;
+  }
+
+  // The HUD's action panel: the big box, then the arrow pointing back at it from the queue, then the queue.
+  function newPreRow(doc) {
+    var row = doc.createElement('div');
+    var now = doc.createElement('div');
+    var flow = doc.createElement('div');
+    var arrow = doc.createElement('div');
+    var bar = doc.createElement('div');
+
+    row.className = PRE_ROW;
+    now.className = PRE_NOW + ' empty';
+    now.setAttribute('data-interactive', '');
+    now.addEventListener('click', onPreNowClick);
+    flow.className = 'slfq-pre-flow';
+    arrow.className = 'slfq-pre-arrow';
+    arrow.appendChild(newArrow(doc));
+    bar.className = PRE;
+    row.appendChild(now);
+    row.appendChild(flow);
+    flow.appendChild(arrow);
+    flow.appendChild(bar);
+    doc.__slfqPreNow = now;
+    doc.__slfqPreBar = bar;
+
+    return row;
+  }
+
+  // The HUD's chevron, drawn at this page's size.
+  function newArrow(doc) {
+    var svg = doc.createElementNS(SVG_NS, 'svg');
+    var path = doc.createElementNS(SVG_NS, 'path');
+
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('width', '23.4');
+    svg.setAttribute('height', '23.4');
+    svg.setAttribute('fill', 'currentColor');
+    path.setAttribute('d', ARROW_PATH);
+    svg.appendChild(path);
+
+    return svg;
+  }
+
+  // As the HUD's big box: empty and dashed with no order, otherwise the order's icon or name, blue when automatic,
+  // and on hover a cross when the order can be stopped or a lock when it cannot.
+  function drawPreNow(now, order) {
+    var isActive = !!order && !!(order.icon || order.name);
+    var isCancellable = isActive && !!order.isCancellable;
+    var showsIcon = isActive && !!order.showIcon && !!order.icon;
+    var key = isActive ? [showsIcon ? order.icon : '', order.name, !!order.isAiDriven, isCancellable].join('|') : '';
+
+    // Drawn again only when what it shows changed, so its icon does not load again.
+    if (now.__slfqKey === key) return;
+
+    now.__slfqKey = key;
+    now.className = PRE_NOW + (isActive ? (isCancellable ? ' cancellable' : ' uncancellable') : ' empty') + (isActive && order.isAiDriven ? ' ai-driven' : '');
+
+    while (now.children.length > 0) now.removeChild(now.children[0]);
+
+    if (!isActive) return;
+
+    var doc = now.ownerDocument;
+    var content;
+
+    if (showsIcon) {
+      content = doc.createElement('img');
+      content.className = 'slfq-pre-img';
+      content.src = order.icon;
+    } else {
+      content = doc.createElement('span');
+      content.className = 'slfq-pre-text';
+      content.textContent = order.name;
+    }
+
+    now.appendChild(content);
+
+    var mark = doc.createElement('div');
+
+    mark.className = 'slfq-pre-x';
+    mark.textContent = isCancellable ? '\u2715' : '\uD83D\uDD12';
+    now.appendChild(mark);
+  }
+
+  // As on the HUD, a click on the big box stops the order being worked on, when the game lets it be stopped.
+  function onPreNowClick() {
+    try {
+      var order = preNow;
+
+      if (!order || !(order.icon || order.name) || !order.isCancellable || !(order.parentId > 0)) return;
+      if (window.vuplex) window.vuplex.postMessage(CANCEL_MESSAGE + order.parentId);
+    } catch (e) {
+      diag('countdown cancel', e);
+    }
   }
 
   function dropPreBar(frame) {
@@ -553,13 +679,15 @@
       doc = frame.contentDocument;
     } catch (e) {}
 
-    var bar = doc && doc.__slfqPreBar;
+    var row = doc && doc.__slfqPreRow;
 
-    if (!bar) return;
+    if (!row) return;
 
-    if (bar.parentElement) bar.parentElement.removeChild(bar);
+    if (row.parentElement) row.parentElement.removeChild(row);
     if (doc.body) doc.body.classList.toggle(PRE_ON, false);
 
+    doc.__slfqPreRow = null;
+    doc.__slfqPreNow = null;
     doc.__slfqPreBar = null;
     doc.__slfqPreCorner = null;
   }

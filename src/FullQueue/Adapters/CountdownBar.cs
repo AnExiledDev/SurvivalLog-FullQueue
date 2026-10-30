@@ -8,6 +8,7 @@ using GameCore.HotUpdate.ReduxUI;
 using HarmonyLib;
 using Il2CppInterop.Runtime;
 using Vuplex.WebView.Internal;
+using ActionTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Action>;
 
 namespace FullQueue.Adapters;
 
@@ -181,8 +182,6 @@ internal static class CountdownBar
 
         Read(source.ActionIdList, source.ParentIdList, source.SourceTypeList);
 
-        if (!Shown.Take(ActionIds, ParentIds, Sources)) return;
-
         var config = GameSingleton.Existing<ConfigManager>();
         var actions = config?._Config_Action_Dict;
 
@@ -195,6 +194,11 @@ internal static class CountdownBar
         }
 
         QueueBarPatch.UseTablesOf(config, actions);
+
+        var current = CurrentOf(source, actions);
+
+        if (!Shown.Take(ActionIds, ParentIds, Sources, current)) return;
+
         Slots.Clear();
 
         for (var i = 0; i < ActionIds.Count; i++)
@@ -206,7 +210,27 @@ internal static class CountdownBar
                 : new QueueSlot.Order(text.Icon, text.Name, IsAuto: i < Sources.Count && Sources[i] == AutoSource, ParentId: i < ParentIds.Count ? ParentIds[i] : 0));
         }
 
-        Send(QueueBar.Extend(CountdownPage.EmptyQueue, Slots) ?? CountdownPage.EmptyQueue);
+        Send(QueueBar.Extend(CountdownPage.EmptyQueue, Slots) ?? CountdownPage.EmptyQueue, QueueBar.CurrentText(current));
+    }
+
+    /// <summary>
+    /// The order being worked on as the HUD's big box shows it (Reducer_Web_CoreUI1.RA_UpdateActionList): the action's
+    /// icon and name, a cross only when the action IsStop, blue when automatic. Null when there is none or the game
+    /// cannot look it up, so the box shows empty.
+    /// </summary>
+    private static CurrentOrder? CurrentOf(AgentActionSource source, ActionTable actions)
+    {
+        var parent = source.CurrentParent;
+
+        if (parent == null || parent.ActionId <= 0) return null;
+
+        var text = QueueBarPatch.TextOf(actions, parent.ActionId);
+
+        if (text == null) return null;
+
+        var isStop = actions.TryGetValue(parent.ActionId, out var action) && action != null && action._IsStop_k__BackingField;
+
+        return new CurrentOrder(text.Icon, text.Name, isStop, IsAuto: (int)parent.SourceType == AutoSource, parent.ListId);
     }
 
     /// <summary>page.js takes its bar away; the next countdown starts from whatever the game sends then.</summary>
@@ -250,9 +274,9 @@ internal static class CountdownBar
         }
     }
 
-    private static void Send(string queueText)
+    private static void Send(string queueText, string currentText = "null")
     {
-        _pending = LastCall = CountdownPage.ShowCall(queueText);
+        _pending = LastCall = CountdownPage.ShowCall(queueText, currentText);
     }
 
     private static bool TakeOurMessage(string serializedMessage)

@@ -18,6 +18,7 @@ public sealed class CountdownQueue
     private readonly List<int> _actionIds = new();
     private readonly List<long> _parentIds = new();
     private readonly List<int> _sources = new();
+    private CurrentOrder? _current;
     private bool _isKnown;
     private QueueStamp _stamp;
     private bool _hasStamp;
@@ -33,11 +34,12 @@ public sealed class CountdownQueue
         return true;
     }
 
-    /// <summary>Whether these orders differ from the last ones taken, and takes them if so.</summary>
-    public bool Take(IReadOnlyList<int> actionIds, IReadOnlyList<long> parentIds, IReadOnlyList<int> sources)
+    /// <summary>Whether these orders or the one being worked on differ from the last ones taken, and takes them if so.</summary>
+    public bool Take(IReadOnlyList<int> actionIds, IReadOnlyList<long> parentIds, IReadOnlyList<int> sources, CurrentOrder? current = null)
     {
-        if (_isKnown && Same(_actionIds, actionIds) && Same(_parentIds, parentIds) && Same(_sources, sources)) return false;
+        if (_isKnown && _current == current && Same(_actionIds, actionIds) && Same(_parentIds, parentIds) && Same(_sources, sources)) return false;
 
+        _current = current;
         Copy(actionIds, _actionIds);
         Copy(parentIds, _parentIds);
         Copy(sources, _sources);
@@ -81,8 +83,12 @@ public static class CountdownPage
     /// <summary>What page.js posts when the player clicks an order on the countdown bar, followed by its parent id.</summary>
     public const string CancelPrefix = "slmod|fullqueue|cancel|";
 
-    /// <summary>The script that hands page.js the bar's list, the game's queue text. Does nothing before page.js runs.</summary>
-    public static string ShowCall(string queueText) => "window.__slfqPre&&window.__slfqPre(" + queueText + ")";
+    /// <summary>
+    /// The script that hands page.js the bar's list, the game's queue text, and the order being worked on
+    /// (QueueBar.CurrentText). Does nothing before page.js runs.
+    /// </summary>
+    public static string ShowCall(string queueText, string currentText = "null") =>
+        "window.__slfqPre&&window.__slfqPre(" + queueText + "," + currentText + ")";
 
     /// <summary>The empty bar, sent when a new game starts in the countdown.</summary>
     public const string EmptyQueue = "[]";

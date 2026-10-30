@@ -79,6 +79,22 @@ internal sealed class PageScript
         PluginSendsCountdown(QueueBar.Extend(CountdownPage.EmptyQueue, orders) ?? throw new InvalidOperationException("the core refused the empty list"));
     }
 
+    /// <summary>
+    /// The same waiting orders as <see cref="PluginSendsCountdownOrders"/>, with the order being worked on (or none),
+    /// both written by the real core as the hook writes them.
+    /// </summary>
+    public void PluginSendsCountdownWith(int count, CurrentOrder? current)
+    {
+        var orders = Enumerable.Range(1, count)
+            .Select(n => (QueueSlot)new QueueSlot.Order("icon" + n, "order " + n, IsAuto: n == 2, ParentId: 100 + n))
+            .ToList();
+        var queue = QueueBar.Extend(CountdownPage.EmptyQueue, orders) ?? throw new InvalidOperationException("the core refused the empty list");
+
+        Run(CountdownPage.ShowCall(queue, QueueBar.CurrentText(current)));
+    }
+
+    public string ClickCountdownNow() => Text("clickPreNow(countdown)");
+
     /// <summary>The plugin's call as it reaches the web view: the countdown list, or <c>null</c> to take the bar away.</summary>
     public void PluginSendsCountdown(string queueText) => Run(CountdownPage.ShowCall(queueText));
 

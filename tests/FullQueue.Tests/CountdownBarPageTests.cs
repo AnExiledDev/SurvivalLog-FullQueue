@@ -36,8 +36,72 @@ public class CountdownBarPageTests
     {
         var page = CountdownShowing(3);
 
-        Assert.Equal("vertical-tools,action-row,slfq-pre", page.Text("cornerOrder(countdown)"));
+        Assert.Equal("vertical-tools,action-row,slfq-pre-row", page.Text("cornerOrder(countdown)"));
         Assert.Equal(Shown3, page.Text("preShown(countdown)"));
+    }
+
+    // The HUD's action panel: the big box with the order being worked on, the yellow arrow, then the queue.
+    [Fact]
+    public void The_row_is_the_big_box_then_the_arrow_then_the_queue_as_on_the_HUD()
+    {
+        var page = CountdownShowing(3);
+
+        Assert.Equal("slfq-pre-now,slfq-pre-flow", page.Text("preRow(countdown).children.map(function (c) { return c.classes[0]; }).join(',')"));
+        Assert.Equal("slfq-pre-arrow,slfq-pre", page.Text("preRow(countdown).children[1].children.map(function (c) { return c.classes[0]; }).join(',')"));
+        Assert.Equal("M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z", page.Text("preRow(countdown).children[1].children[0].children[0].children[0].getAttribute('d')"));
+        Assert.Equal("http://www.w3.org/2000/svg", page.Text("preRow(countdown).children[1].children[0].children[0].namespaceURI"));
+    }
+
+    [Fact]
+    public void With_no_order_being_worked_on_the_big_box_is_empty_and_dashed()
+    {
+        var page = CountdownShowing(3);
+
+        Assert.True(page.Is("preNowBox(countdown).classList.contains('empty')"));
+        Assert.Equal(0.0, page.Number("preNowBox(countdown).children.length"));
+        Assert.Equal("dashed", page.Text("sheetStyle(preStyleOn(countdown), '.slfq-pre-now.empty', 'border').split(' ')[1]"));
+        Assert.Equal("", page.ClickCountdownNow());
+    }
+
+    [Fact]
+    public void The_order_being_worked_on_shows_in_the_big_box_and_a_click_stops_it()
+    {
+        var page = CountdownWithScript();
+
+        page.PluginSendsCountdownWith(2, new CurrentOrder("iconNow", "cutting wood", IsCancellable: true, IsAuto: true, ParentId: 77));
+        page.NextCountdownFrame();
+
+        Assert.Equal("iconNow", page.Text("preNowBox(countdown).children[0].src"));
+        Assert.True(page.Is("preNowBox(countdown).classList.contains('cancellable') && preNowBox(countdown).classList.contains('ai-driven')"));
+        Assert.False(page.Is("preNowBox(countdown).classList.contains('empty')"));
+        Assert.Equal("icon1,icon2,,,", page.Text("preShown(countdown)"));
+        Assert.Equal(CountdownPage.CancelPrefix + "77", page.ClickCountdownNow());
+    }
+
+    [Fact]
+    public void An_order_the_game_does_not_let_the_player_stop_shows_a_lock_and_takes_no_click()
+    {
+        var page = CountdownWithScript();
+
+        page.PluginSendsCountdownWith(0, new CurrentOrder("", "sleeping", IsCancellable: false, IsAuto: false, ParentId: 78));
+
+        Assert.Equal("sleeping", page.Text("preNowBox(countdown).children[0].textContent"));
+        Assert.True(page.Is("preNowBox(countdown).classList.contains('uncancellable')"));
+        Assert.Equal("\uD83D\uDD12", page.Text("preNowBox(countdown).children[1].textContent"));
+        Assert.Equal("", page.ClickCountdownNow());
+    }
+
+    [Fact]
+    public void When_the_order_ends_the_big_box_empties()
+    {
+        var page = CountdownWithScript();
+
+        page.PluginSendsCountdownWith(1, new CurrentOrder("iconNow", "cutting wood", IsCancellable: true, IsAuto: false, ParentId: 77));
+        page.PluginSendsCountdownWith(1, null);
+
+        Assert.True(page.Is("preNowBox(countdown).classList.contains('empty')"));
+        Assert.Equal(0.0, page.Number("preNowBox(countdown).children.length"));
+        Assert.Equal("", page.ClickCountdownNow());
     }
 
     [Fact]
@@ -57,7 +121,7 @@ public class CountdownBarPageTests
 
         Assert.Equal(",,,,", page.Text("preShown(countdown)"));
         Assert.True(page.Is("countdown.document.body.classList.contains('slfq-pre-on')"));
-        Assert.Equal("184px", page.Text("sheetStyle(preStyleOn(countdown), 'body.slfq-pre-on .buff-container', 'bottom')"));
+        Assert.Equal("205.66px", page.Text("sheetStyle(preStyleOn(countdown), 'body.slfq-pre-on .buff-container', 'bottom')"));
     }
 
     [Fact]
@@ -126,7 +190,7 @@ public class CountdownBarPageTests
         page.ReloadCountdown();
         page.Poll();
 
-        Assert.Equal("vertical-tools,action-row,slfq-pre", page.Text("cornerOrder(countdown)"));
+        Assert.Equal("vertical-tools,action-row,slfq-pre-row", page.Text("cornerOrder(countdown)"));
         Assert.Equal(Shown3, page.Text("preShown(countdown)"));
     }
 
@@ -161,7 +225,7 @@ public class CountdownBarPageTests
 
         Assert.True(page.Is(
             "preStyleOn(countdown).textContent.split('\\n').filter(function (rule) { return rule.indexOf('body.slfq-pre-on ') !== 0; })" +
-            ".every(function (rule) { return rule.split('{')[0].split(',').every(function (part) { return part.trim().indexOf('.slfq-pre') === 0; }); })"));
+            ".every(function (rule) { return rule.indexOf('@keyframes slfq-pre-') === 0 || rule.split('{')[0].split(',').every(function (part) { return part.trim().indexOf('.slfq-pre') === 0; }); })"));
     }
 
     [Fact]

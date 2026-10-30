@@ -18,6 +18,9 @@ public abstract record QueueSlot
     public sealed record Blank : QueueSlot;
 }
 
+/// <summary>The order the character is working on: what the HUD's big box before the queue bar shows.</summary>
+public sealed record CurrentOrder(string Icon, string Name, bool IsCancellable, bool IsAuto, long ParentId);
+
 /// <summary>
 /// The text the game hands the queue bar: a JSON list with one entry per slot. The game writes the first five
 /// waiting orders, padded with empty slots, and drops the rest. The mod adds the rest in the same shape, after the
@@ -54,6 +57,28 @@ public static class QueueBar
         }
 
         return text.Append(']').ToString();
+    }
+
+    /// <summary>
+    /// The order being worked on, for the big box before the countdown bar, in the shape of a bar entry: "null" when the
+    /// character works on nothing. Its cross shows only for orders the game lets the player stop, as on the HUD.
+    /// </summary>
+    public static string CurrentText(CurrentOrder? current)
+    {
+        if (current == null) return "null";
+
+        var text = new StringBuilder(160);
+
+        text.Append("{\"icon\":");
+        AppendString(text, current.Icon);
+        text.Append(",\"name\":");
+        AppendString(text, current.Name);
+        text.Append(",\"showIcon\":").Append(Bool(current.Icon.Length > 0));
+        text.Append(",\"isCancellable\":").Append(Bool(current.IsCancellable));
+        text.Append(",\"isAiDriven\":").Append(Bool(current.IsAuto));
+        text.Append(",\"parentId\":").Append(current.ParentId.ToString(CultureInfo.InvariantCulture));
+
+        return text.Append('}').ToString();
     }
 
     /// <summary>One entry with the game's fields in the game's order, as the game's own entries are written.</summary>
