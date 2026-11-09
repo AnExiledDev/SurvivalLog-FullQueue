@@ -6,7 +6,7 @@ namespace FullQueue.Tests;
 
 /// <summary>
 /// page.js exactly as the plugin embeds it, run in Jint on top of FakePage.js: the root page with CoreUI1 in an
-/// iframe, its queue bar laid out as the game's CSS lays it out, and the game's own listener that cuts the queue to
+/// iframe, its queue bar laid out as the game's CSS lays it out, and the game's listener that cuts the queue to
 /// five. The queue text the game sends is built by the real core, as the plugin's hook builds it.
 /// </summary>
 internal sealed class PageScript

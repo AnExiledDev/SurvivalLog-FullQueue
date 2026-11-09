@@ -82,7 +82,7 @@
 
   // ===== The orders past the fifth =====
 
-  // The game's own listener cuts the list to five. This one listens in the capture phase, which current browsers run
+  // The game's listener cuts the list to five. This one listens in the capture phase, which current browsers run
   // first, and takes the queue out of the update once it has put the whole list in, so the game's listener leaves the
   // list alone and the page draws it once. A browser that runs the game's listener first gets the whole list put back
   // right after it.

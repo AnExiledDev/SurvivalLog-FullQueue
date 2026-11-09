@@ -13,7 +13,7 @@ namespace FullQueue.Adapters;
 /// (ActionManager.SyncActionList fills the update with all of them), but Reducer_Web_CoreUI1.RA_UpdateActionList writes
 /// only the first five into the bar's text, so the page never learns the parent id of a later order and cannot show
 /// or cancel it. The hook runs after the game writes the text and, when more than five orders wait, adds the rest
-/// with the game's own rules: the action's icon and translated name, cancellable, and the game's mark for an order it
+/// with the game's rules: the action's icon and translated name, cancellable, and the game's mark for an order it
 /// counts as automatic. With five or fewer the game's text stays as it is. Each action's icon and name are read from
 /// the game once per action table and language, and the text is built again only when the queue changed. Static
 /// because Harmony hooks are; it only runs on the game's main thread.

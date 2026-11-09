@@ -6,7 +6,7 @@ using GameCore.HotUpdate.ReduxUI;
 namespace FullQueue.Adapters;
 
 /// <summary>
-/// The mod's half that lives in the game's web UI: page.js, run in the root document the game's own pages sit in. It
+/// The mod's half that lives in the game's web UI: page.js, run in the root document the game's pages sit in. It
 /// gives the queue bar the orders past the fifth and lets it scroll, and draws the queue on the countdown screen. The web view can reload at any time and lose the
 /// script, so every couple of seconds a probe of a few bytes asks the page whether the script still runs, and the
 /// script is sent only when it does not (<see cref="ScriptKeeper"/>).

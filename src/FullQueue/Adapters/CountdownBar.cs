@@ -153,7 +153,7 @@ internal static class CountdownBar
         {
             if (__instance == null || agentActionSource == null) return;
 
-            // The disaster has started: the game's own bar has the queue.
+            // The disaster has started: the game's bar has the queue.
             if (*((byte*)__instance.Pointer + _uiRefreshAt) != 0)
             {
                 if (LastCall != null) Drop();

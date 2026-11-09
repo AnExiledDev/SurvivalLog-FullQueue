@@ -93,7 +93,7 @@ public static class QueueBar
         return text.Append('}').ToString();
     }
 
-    /// <summary>One entry with the game's fields in the game's order, as the game's own entries are written.</summary>
+    /// <summary>One entry with the game's fields in the game's order, as the game's entries are written.</summary>
     private static void AppendEntry(StringBuilder text, QueueSlot slot)
     {
         var order = slot as QueueSlot.Order;

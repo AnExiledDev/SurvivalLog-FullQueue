@@ -10,13 +10,13 @@ At home, Survival Log lets you line up orders: walk there, pick that up, cook th
 - **A full queue on expeditions**: the same on an expedition.
 - **Only one thing changes**: a new order joins the end of the queue instead of replacing it. Nothing else about orders is changed.
 - **See every waiting order**: the queue bar at the bottom of the screen shows all your waiting orders, not just the first 5. With more than 5 it keeps its size and scrolls with the mouse wheel, and a small number at its edge says how many orders are out of sight on that side. Click any of them to cancel it, as with the first 5. With 5 or fewer the bar looks just as it always did. It works wherever the game shows the bar.
-- **A queue bar in the countdown**: the game shows no queue bar in the countdown before the disaster. The mod adds one in the bottom left corner, under the buttons there, which move up to make room. Like the bar after the disaster, it starts with a big box for what your character is doing now, with the same ring that shows how far along it is (and how many items are put away when storing). Click an order, or the big box, to cancel it. It goes away when the disaster starts and the game's own bar takes over.
+- **A queue bar in the countdown**: the game shows no queue bar in the countdown before the disaster. The mod adds one in the bottom left corner, under the buttons there, which move up to make room. Like the bar after the disaster, it starts with a big box for what your character is doing now, with the same ring that shows how far along it is (and how many items are put away when storing). Click an order, or the big box, to cancel it. It goes away when the disaster starts and the game's bar takes over.
 - **Each place has its own switch**: turn the queue off for the start of a game or for expeditions if you prefer the game's way there.
 - **A log file**: what the mod did is written to `BepInEx\full-queue.log`.
 
 There are no new keys or buttons. Scroll the queue bar with the mouse wheel while the pointer is over it.
 
-Works in English and Chinese. The mod adds no words of its own to the game's screens: the queue bar shows the game's own order names in the language you play in, and the out-of-sight counts are plain numbers such as `+3`. The settings file explains each setting in English and Simplified Chinese.
+Works in English and Chinese. The mod adds no words of its own to the game's screens: the queue bar shows the game's order names in the language you play in, and the out-of-sight counts are plain numbers such as `+3`. The settings file explains each setting in English and Simplified Chinese.
 
 Full Queue adds no data to your save and does not edit game files. You can remove it at any time.
 

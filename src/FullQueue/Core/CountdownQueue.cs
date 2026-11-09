@@ -95,7 +95,7 @@ public static class CountdownPage
     /// <summary>The empty bar, sent when a new game starts in the countdown.</summary>
     public const string EmptyQueue = "[]";
 
-    /// <summary>Takes the countdown bar away, sent once the game's own bar shows the queue.</summary>
+    /// <summary>Takes the countdown bar away, sent once the game's bar shows the queue.</summary>
     public const string NoQueue = "null";
 
     public static bool IsOurs(string? message) => message != null && message.StartsWith(CancelPrefix, System.StringComparison.Ordinal);
