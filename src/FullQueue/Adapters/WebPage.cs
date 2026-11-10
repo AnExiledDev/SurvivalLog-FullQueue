@@ -1,8 +1,7 @@
 using System;
 using System.IO;
-using ExiledToolkit.Game;
+using ExiledToolkit.Web;
 using FullQueue.Core;
-using GameCore.HotUpdate.ReduxUI;
 
 namespace FullQueue.Adapters;
 
@@ -67,26 +66,19 @@ internal sealed class WebPage
         _log("page script sent to the web UI");
     }
 
+    /// <summary>False when there is no web view yet (normal while the game loads) or the script threw.</summary>
     private bool Run(string javaScript, Il2CppSystem.Action<string>? onReply)
     {
-        var webView = GameSingleton.Existing<ReduxUISystem>()?.GetWebUILayer()?.canvasWebViewPrefab?.WebView;
+        Exception? failure;
+        var isSent = onReply == null ? WebUi.TryRun(javaScript, out failure) : WebUi.TryRun(javaScript, onReply, out failure);
 
-        if (webView == null) return false;
+        if (isSent || failure == null) return isSent;
 
-        try
-        {
-            webView.ExecuteJavaScript(javaScript, onReply);
+        if (!_hasReportedRunFailure) _log("could not run script in the web UI (reported once): " + failure.Message);
 
-            return true;
-        }
-        catch (Exception ex)
-        {
-            if (!_hasReportedRunFailure) _log("could not run script in the web UI (reported once): " + ex.Message);
+        _hasReportedRunFailure = true;
 
-            _hasReportedRunFailure = true;
-
-            return false;
-        }
+        return false;
     }
 
     private string Script()
