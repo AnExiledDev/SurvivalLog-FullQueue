@@ -376,4 +376,38 @@ public class CountdownBarPageTests
 
         Assert.Equal(0.0, page.Number("warnings.length"));
     }
+
+    // The game can run Exiled's Toolkit's script before or after this one, and the plugin sends the list right after
+    // this script, so a list that comes before the Toolkit waits for it.
+    [Fact]
+    public void With_the_Toolkit_script_run_first_the_countdown_bar_shows_and_cancels()
+    {
+        var page = new PageScript(isToolkitFirst: true);
+
+        page.OpenCountdown();
+        page.PluginSendsCountdownOrders(3);
+        page.NextCountdownFrame();
+
+        Assert.Equal(Shown3, page.Text("preShown(countdown)"));
+        Assert.Equal(CountdownPage.CancelPrefix + "102", page.ClickCountdownSlot(1));
+    }
+
+    [Fact]
+    public void With_the_Toolkit_script_run_later_the_countdown_bar_waits_for_it_then_shows_and_cancels()
+    {
+        var page = new PageScript(isToolkitFirst: false);
+
+        page.OpenCountdown();
+        page.PluginSendsCountdownOrders(3);
+        page.Poll();
+
+        Assert.True(page.Is("preBar(countdown) === null"));
+
+        page.LoadToolkit();
+        page.NextCountdownFrame();
+
+        Assert.Equal(Shown3, page.Text("preShown(countdown)"));
+        Assert.Equal(CountdownPage.CancelPrefix + "102", page.ClickCountdownSlot(1));
+        Assert.Equal(0.0, page.Number("warnings.length"));
+    }
 }

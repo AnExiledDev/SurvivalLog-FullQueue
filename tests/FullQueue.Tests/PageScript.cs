@@ -5,19 +5,30 @@ using Jint;
 namespace FullQueue.Tests;
 
 /// <summary>
-/// page.js exactly as the plugin embeds it, run in Jint on top of FakePage.js: the root page with CoreUI1 in an
-/// iframe, its queue bar laid out as the game's CSS lays it out, and the game's listener that cuts the queue to
-/// five. The queue text the game sends is built by the real core, as the plugin's hook builds it.
+/// page.js exactly as the plugin embeds it, run in Jint with Exiled's Toolkit's page API (api.js, from the Toolkit's
+/// source) on top of FakePage.js: the root page with CoreUI1 in an iframe, its queue bar laid out as the game's CSS
+/// lays it out, and the game's listener that cuts the queue to five. The queue text the game sends is built by the
+/// real core, as the plugin's hook builds it.
 /// </summary>
 internal sealed class PageScript
 {
     private readonly Engine _engine = new();
 
-    public PageScript()
+    /// <param name="isToolkitFirst">
+    /// The game runs the Toolkit's script first, or with false Full Queue's first; then the Toolkit's runs only at
+    /// <see cref="LoadToolkit"/>.
+    /// </param>
+    public PageScript(bool isToolkitFirst = true)
     {
         _engine.Execute(Resource("FullQueue.Tests.FakePage.js"));
+
+        if (isToolkitFirst) _engine.Execute(Resource("ExiledToolkit.api.js"));
+
         _engine.Execute(Resource("FullQueue.page.js"));
     }
+
+    /// <summary>The Toolkit's page API arriving after Full Queue's script.</summary>
+    public void LoadToolkit() => _engine.Execute(Resource("ExiledToolkit.api.js"));
 
     /// <summary>Opens CoreUI1. Fake browsers run capture listeners first unless told otherwise, as current ones do.</summary>
     public void OpenPage(bool capturesFirst = true) => Run($"var page = openCoreUI1(); page.capturesFirst = {Js(capturesFirst)};");

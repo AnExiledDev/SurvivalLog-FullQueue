@@ -37,7 +37,6 @@ public class QueueBarPageCostTests
 
         Assert.Equal(0.0, page.Number("searches"));
         Assert.Equal(0.0, page.Number("layoutReads"));
-        Assert.Equal(0.0, page.Number("frameLooks"));
         Assert.Equal(0.0, page.Number("page.evals"));
         Assert.Equal("4:after:+3", page.Text("counts(page)"));
     }

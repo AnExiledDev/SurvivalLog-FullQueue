@@ -1,11 +1,12 @@
 using System;
-using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Unity.IL2CPP;
+using ExiledToolkit.Game;
+using ExiledToolkit.Kit;
 using FullQueue.Adapters;
 using FullQueue.Core;
 using HarmonyLib;
@@ -13,16 +14,16 @@ using HarmonyLib;
 namespace FullQueue;
 
 [BepInPlugin(Guid, "Full Queue", Version)]
-[BepInDependency(OptionalLive.ToolkitGuid, BepInDependency.DependencyFlags.SoftDependency)]
+[BepInDependency(ToolkitGuid, ">=0.19.0")]
 public sealed class Plugin : BasePlugin
 {
     private const string Guid = "com.dev.survivallog.fullqueue";
-    private const string Version = "0.4.0";
+    private const string Version = "0.4.1";
+    private const string ToolkitGuid = "com.dev.survivallog.exiledtoolkit";
+    private const long MaxLogBytes = 1024 * 1024;
 
     public override void Load()
     {
-        if (!OptionalLive.IsToolkitInstalled) Log.LogInfo(OptionalLive.MissingNote);
-
         var isEnabled = Config.Bind("General", "Enabled", true, new ConfigDescription(
             "Turns the whole mod on or off. When true (the default), your character can queue several orders in the countdown before the disaster and on expeditions, as at home, and the queue bar shows every waiting order. Takes effect at the next game start.\n" +
             "整个模组的总开关。为 true（默认）时，灾变倒计时和外出探索中也能像在家一样连续下达多个操作排进队列，画面下方的队列栏也会显示所有等待中的操作。下次启动游戏时生效。", null, "ModManager.Restart")).Value;
@@ -35,27 +36,27 @@ public sealed class Plugin : BasePlugin
         var scrollQueue = Config.Bind("General", "ScrollQueue", true, new ConfigDescription(
             "When true (the default), the queue bar at the bottom of the screen shows every waiting order, and with more than 5 it keeps its size and scrolls with the mouse wheel. In the countdown before the disaster, where the game shows no queue bar, the mod adds one in the bottom left corner. When false, the bar shows only the first 5 and the countdown has no queue bar, as in the game. Takes effect at the next game start.\n" +
             "为 true（默认）时，画面下方的队列栏会显示所有等待中的操作；超过 5 个时队列栏大小不变，可用鼠标滚轮滚动查看。灾变前的倒计时中游戏不显示队列栏，模组会在左下角加上一个。为 false 时保持游戏原样，只显示前 5 个，倒计时中也没有队列栏。下次启动游戏时生效。", null, "ModManager.Restart", "ModManager.ShowWhen=Enabled")).Value;
-        var log = new FullQueueLog(Log, Path.Combine(Paths.BepInExRootPath, "full-queue.log"));
+        var log = new ModLog(Log, "full-queue.log") { MaxFileBytes = MaxLogBytes };
 
-        PatchKit.Log = log.Write;
         log.Write($"===== Full Queue {Version} started: {OnOff(isEnabled)}, countdown before the disaster {OnOff(inPrologue.Value)}, expeditions {OnOff(onExpeditions.Value)}, queue bar shows every order {OnOff(scrollQueue)}");
 
         if (!isEnabled) return;
 
-        var harmony = new Harmony(Guid);
+        var hooks = new PatchKit(new Harmony(Guid), log.Write);
 
-        QueuePatch.Apply(harmony);
+        QueuePatch.Apply(hooks, log.Write);
 
-        OptionalLive.Watch(() =>
+        ExiledToolkit.LiveSettings.Watch(() =>
         {
             QueuePatch.UseSettings(new QueueSettings(inPrologue.Value, onExpeditions.Value));
             log.Write($"queue in the countdown before the disaster {OnOff(inPrologue.Value)}, on expeditions {OnOff(onExpeditions.Value)}");
         }, inPrologue, onExpeditions);
 
         // Without the hook the bar's text holds five orders, so the page script would have nothing to add.
-        if (!scrollQueue || !QueueBarPatch.Apply(harmony)) return;
+        if (!scrollQueue || !QueueBarPatch.Apply(hooks, log.Write)) return;
 
-        CountdownBar.Apply(harmony);
+        CountdownBar.Apply(hooks, log.Write);
+        PageTicker.Hooks = hooks;
         PageTicker.Page = new WebPage(log.Write, Environment.TickCount64);
         AddComponent<PageTicker>();
         WarmUpInBackground(log.WriteFileOnly);

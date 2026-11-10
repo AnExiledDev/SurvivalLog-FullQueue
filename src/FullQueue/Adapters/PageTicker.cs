@@ -1,4 +1,5 @@
 using System;
+using ExiledToolkit.Game;
 using UnityEngine;
 
 namespace FullQueue.Adapters;
@@ -10,6 +11,7 @@ namespace FullQueue.Adapters;
 /// </summary>
 public sealed class PageTicker : MonoBehaviour
 {
+    internal static PatchKit? Hooks;
     internal static WebPage? Page;
 
     public PageTicker(IntPtr pointer) : base(pointer)
@@ -25,7 +27,7 @@ public sealed class PageTicker : MonoBehaviour
         }
         catch (Exception ex)
         {
-            PatchKit.Fail("keeping the page script in the web UI, the queue bar shows the first five orders", ex);
+            Hooks?.Fail("keeping the page script in the web UI, the queue bar shows the first five orders", ex);
         }
     }
 }

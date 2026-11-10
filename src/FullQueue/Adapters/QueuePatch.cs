@@ -1,8 +1,8 @@
 using System;
+using ExiledToolkit.Game;
 using FullQueue.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
-using HarmonyLib;
 using UnityEngine;
 
 namespace FullQueue.Adapters;
@@ -23,13 +23,18 @@ internal static class QueuePatch
     private static readonly Type[] InitializeParameters = { typeof(int), typeof(int), typeof(Vector3), typeof(WorldStateType) };
 
     private static QueueSettings _settings = new(InPrologue: false, OnExpeditions: false);
+    private static PatchKit? _hooks;
+    private static Action<string> _log = _ => { };
 
-    public static void Apply(Harmony harmony)
+    public static void Apply(PatchKit hooks, Action<string> log)
     {
-        PatchKit.Patch(harmony, typeof(QueuePatch), typeof(LeadingRole), nameof(LeadingRole.Initialize), InitializeParameters,
-            nameof(OpenQueue),
-            "hooked LeadingRole.Initialize: orders queue up where the settings allow",
-            "the game keeps one order at a time before the disaster and on expeditions");
+        _hooks = hooks;
+        _log = log;
+
+        hooks.Patch(typeof(QueuePatch), typeof(LeadingRole), nameof(LeadingRole.Initialize), InitializeParameters,
+            postfix: nameof(OpenQueue),
+            done: "hooked LeadingRole.Initialize: orders queue up where the settings allow",
+            consequence: "the game keeps one order at a time before the disaster and on expeditions");
     }
 
     /// <summary>Called on the main thread at start and after each change; a character set up from then on follows it.</summary>
@@ -50,11 +55,11 @@ internal static class QueuePatch
 
             if (change == QueueChange.OpenQueue) orders.Mode = ActionMode.Queue;
 
-            PatchKit.Log(Describe(place, change));
+            _log(Describe(place, change));
         }
         catch (Exception ex)
         {
-            PatchKit.Fail(Doing, ex);
+            _hooks?.Fail(Doing, ex);
         }
     }
 

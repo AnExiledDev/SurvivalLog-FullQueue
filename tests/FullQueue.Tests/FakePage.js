@@ -10,16 +10,14 @@ var warnings = [];
 var console = { warn: function (text) { warnings.push(String(text)); } };
 
 // What the script costs the browser, counted across every page: element searches (querySelector,
-// querySelectorAll, getElementById), box reads that make the browser lay the page out, and looks at an iframe in the
-// root page's frame list. The page itself counts its evals and JSON parses. resetCounts() zeroes them all.
+// querySelectorAll, getElementById) and box reads that make the browser lay the page out. The page itself counts its
+// evals and JSON parses. resetCounts() zeroes them all.
 var searches = 0;
 var layoutReads = 0;
-var frameLooks = 0;
 
 function resetCounts(page) {
   searches = 0;
   layoutReads = 0;
-  frameLooks = 0;
   page.evals = 0;
   page.parses = 0;
 }
@@ -264,17 +262,8 @@ function makeDocument() {
     querySelector: function (selector) { return root.querySelector(selector); },
     querySelectorAll: function (selector) { return root.querySelectorAll(selector); },
 
-    // The browser's live list: it always holds the elements in the document now.
-    getElementsByTagName: function (tagName) {
-      return {
-        get length() { return findAll(root, tagName).length; },
-        item: function (index) {
-          frameLooks++;
-
-          return findAll(root, tagName)[index] || null;
-        }
-      };
-    }
+    // The elements in the document now, read by index as the Toolkit's page check reads them.
+    getElementsByTagName: function (tagName) { return findAll(root, tagName); }
   };
 
   root.ownerDocument = doc;
@@ -329,6 +318,7 @@ function openCoreUI1() {
 
   doc.defaultView = page;
   frame.src = 'https://webui.local/UI/CoreUI1/CoreUI1.html';
+  page.location = { href: frame.src };
   frame.contentWindow = page;
   frame.contentDocument = doc;
   page.frame = frame;
@@ -597,6 +587,7 @@ function openCoreUI0() {
   };
   doc.defaultView = page;
   frame.src = 'https://webui.local/UI/CoreUI0/CoreUI0.html';
+  page.location = { href: frame.src };
   frame.contentWindow = page;
   frame.contentDocument = doc;
   page.frame = frame;

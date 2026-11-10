@@ -356,4 +356,35 @@ public class QueueBarPageTests
 
         Assert.Equal(0.0, page.Number("warnings.length"));
     }
+
+    // The game can run Exiled's Toolkit's script before or after this one; either way the bar shows every order.
+    [Fact]
+    public void With_the_Toolkit_script_run_first_the_bar_shows_every_order()
+    {
+        var page = new PageScript(isToolkitFirst: true);
+
+        page.OpenPage();
+        page.Poll();
+        page.GameSendsOrders(8);
+
+        Assert.Equal(EightOrders, page.Text("shownNames(page)"));
+    }
+
+    [Fact]
+    public void With_the_Toolkit_script_run_later_the_bar_waits_for_it_then_shows_every_order()
+    {
+        var page = new PageScript(isToolkitFirst: false);
+
+        page.OpenPage();
+        page.Poll();
+        page.GameSendsOrders(8);
+
+        Assert.Equal("order 1,order 2,order 3,order 4,order 5", page.Text("shownNames(page)"));
+
+        page.LoadToolkit();
+        page.GameSendsOrders(8);
+
+        Assert.Equal(EightOrders, page.Text("shownNames(page)"));
+        Assert.Equal(0.0, page.Number("warnings.length"));
+    }
 }

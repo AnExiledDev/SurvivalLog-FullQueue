@@ -1,13 +1,12 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
+using ExiledToolkit.Web;
 using FullQueue.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.Battle.Logic;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using Il2CppInterop.Runtime;
-using Vuplex.WebView.Internal;
 using ActionTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Action>;
 
 namespace FullQueue.Adapters;
@@ -45,7 +44,8 @@ internal static class CountdownBar
     private static readonly List<long> ParentIds = new();
     private static readonly List<int> Sources = new();
     private static readonly List<QueueSlot> Slots = new();
-    private static readonly ConcurrentQueue<string> Messages = new();
+    private static PageMailbox? _clicks;
+    private static PatchKit? _hooks;
 
     // The hook runs for every character on every frame, so the few fields it checks first are read straight from memory.
     private static int _uiRefreshAt;
@@ -64,45 +64,39 @@ internal static class CountdownBar
     /// <summary>The last list sent, sent again with page.js when the web view lost the script.</summary>
     internal static string? LastCall { get; private set; }
 
-    public static bool Apply(Harmony harmony)
+    public static bool Apply(PatchKit hooks, Action<string> log)
     {
+        _hooks = hooks;
+
         try
         {
             FindFields();
         }
         catch (Exception ex)
         {
-            PatchKit.Log("could not find the queue's fields, the countdown screen shows no queue as in the game: " + ex.Message);
+            log("could not find the queue's fields, the countdown screen shows no queue as in the game: " + ex.Message);
 
             return false;
         }
 
-        if (!PatchKit.Patch(harmony, typeof(CountdownBar), typeof(ActionManager), nameof(ActionManager.SyncActionList), SyncParameters,
-                nameof(SyncQueue),
-                "hooked ActionManager.SyncActionList: the countdown screen shows the queue",
-                "the countdown screen shows no queue as in the game"))
+        if (!hooks.Patch(typeof(CountdownBar), typeof(ActionManager), nameof(ActionManager.SyncActionList), SyncParameters,
+                postfix: nameof(SyncQueue),
+                done: "hooked ActionManager.SyncActionList: the countdown screen shows the queue",
+                consequence: "the countdown screen shows no queue as in the game"))
             return false;
 
-        PatchKit.Patch(harmony, typeof(CountdownBar), typeof(Ac_CoreUI0_Open), nameof(Ac_CoreUI0_Open.SendAction), OpenParameters,
-            nameof(NewCountdown),
-            "hooked Ac_CoreUI0_Open.SendAction: a new game starts with an empty countdown queue",
-            "a new game can show the last game's countdown queue until its first order");
+        hooks.Patch(typeof(CountdownBar), typeof(Ac_CoreUI0_Open), nameof(Ac_CoreUI0_Open.SendAction), OpenParameters,
+            postfix: nameof(NewCountdown),
+            done: "hooked Ac_CoreUI0_Open.SendAction: a new game starts with an empty countdown queue",
+            consequence: "a new game can show the last game's countdown queue until its first order");
 
-        PatchKit.Patch(harmony, typeof(CountdownBar), typeof(Ac_CoreUI1_QuickStoreProgress), nameof(Ac_CoreUI1_QuickStoreProgress.SendAction),
-            StoreCountParameters, nameof(KeepStoreCount),
-            "hooked Ac_CoreUI1_QuickStoreProgress.SendAction: the countdown's big box shows the store count",
-            "the countdown's big box shows no store count");
+        hooks.Patch(typeof(CountdownBar), typeof(Ac_CoreUI1_QuickStoreProgress), nameof(Ac_CoreUI1_QuickStoreProgress.SendAction),
+            StoreCountParameters, postfix: nameof(KeepStoreCount),
+            done: "hooked Ac_CoreUI1_QuickStoreProgress.SendAction: the countdown's big box shows the store count",
+            consequence: "the countdown's big box shows no store count");
 
-        try
-        {
-            harmony.Patch(AccessTools.Method(typeof(BaseWebView), "HandleMessageEmitted", new[] { typeof(string) }),
-                prefix: new HarmonyMethod(typeof(CountdownBar), nameof(TakeOurMessage)));
-            PatchKit.Log("hooked BaseWebView.HandleMessageEmitted: a click on the countdown queue cancels the order");
-        }
-        catch (Exception ex)
-        {
-            PatchKit.Log("could not hook BaseWebView.HandleMessageEmitted, a click on the countdown queue does nothing: " + ex.Message);
-        }
+        // The Toolkit holds the one hook on the page messages and logs whether it went in.
+        _clicks = PageInbox.Listen(CountdownPage.CancelPrefix);
 
         return true;
     }
@@ -119,7 +113,7 @@ internal static class CountdownBar
     /// <summary>Cancels every order clicked on the countdown bar since the last frame. Runs on the main thread.</summary>
     internal static void CancelClicked()
     {
-        while (Messages.TryDequeue(out var message))
+        while (_clicks != null && _clicks.TryTake(out var message))
         {
             if (CountdownPage.TryReadCancel(message, out var parentId))
                 EventDispatcherTools.NotifyGlobal<long>(EnumNotify_Action.RemoveLeadingRoleAction, parentId);
@@ -181,7 +175,7 @@ internal static class CountdownBar
         catch (Exception ex)
         {
             Shown.Forget();
-            PatchKit.Fail(Doing, ex);
+            _hooks?.Fail(Doing, ex);
         }
     }
 
@@ -313,7 +307,7 @@ internal static class CountdownBar
         }
         catch (Exception ex)
         {
-            PatchKit.Fail(Doing, ex);
+            _hooks?.Fail(Doing, ex);
         }
     }
 
@@ -329,21 +323,12 @@ internal static class CountdownBar
         }
         catch (Exception ex)
         {
-            PatchKit.Fail(Doing, ex);
+            _hooks?.Fail(Doing, ex);
         }
     }
 
     private static void Send(string queueText, string currentText = "null")
     {
         _pending = LastCall = CountdownPage.ShowCall(queueText, currentText);
-    }
-
-    private static bool TakeOurMessage(string serializedMessage)
-    {
-        if (!CountdownPage.IsOurs(serializedMessage)) return true;
-
-        Messages.Enqueue(serializedMessage);
-
-        return false;
     }
 }

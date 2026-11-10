@@ -10,13 +10,11 @@
 // big box with that order, the arrow, then the bar) in that screen's bottom left corner, below the tools and buttons
 // there, which move up to make room. A click on an order there, or on the big box, cancels it. The plugin asks
 // every couple of seconds whether the script still runs and sends it only when it does not; the guard below makes a
-// second copy return at once all the same.
+// second copy return at once all the same. Exiled's Toolkit finds both pages and sends the clicks to the plugin.
 (function () {
   if (window.__slfullqueue) return;
 
   window.__slfullqueue = true;
-
-  var POLL_MS = 250;
 
   // Polls after an update, a load or a resize that measure the bar again whatever it shows: the slots' appear pulse
   // and transitions move them for up to 0.4 s after the page draws them.
@@ -46,6 +44,9 @@
 
   var reported = {};
 
+  // The Toolkit's page API (window.ExiledToolkit), or null until its script has run.
+  var etk = null;
+
   // The whole queue from the last update of more than five orders, or null once a shorter one came.
   var lastLongQueue = null;
 
@@ -58,26 +59,6 @@
     try {
       console.warn('[Full Queue] ' + kind + ': ' + error);
     } catch (e) {}
-  }
-
-  // Kept on the document, so a poll looks it up only when the page lost it.
-  function addStyle(doc, id, css) {
-    var key = '__slfqStyle_' + id;
-
-    if (doc[key] && doc[key].isConnected) return;
-
-    var style = doc.getElementById(id);
-
-    if (!style) {
-      if (!doc.head) return;
-
-      style = doc.createElement('style');
-      style.id = id;
-      style.textContent = css;
-      doc.head.appendChild(style);
-    }
-
-    doc[key] = style;
   }
 
   // ===== The orders past the fifth =====
@@ -394,32 +375,6 @@
     });
   }
 
-  // ===== Finding the page =====
-
-  // The game's pages are same-origin iframes of this document, created, dropped and loaded with another page whenever
-  // the game likes. The list is the browser's live one, so a poll reads it without a search.
-  var frames = document.getElementsByTagName('iframe');
-
-  // The frame CoreUI1 was last found in, kept while it stays in the document and holds CoreUI1.
-  var coreFrame = null;
-
-  function patchPages() {
-    if (!coreFrame || !coreFrame.isConnected) coreFrame = findCoreFrame();
-    if (coreFrame) patchFrame(coreFrame);
-  }
-
-  function findCoreFrame() { return findFrame(CORE_PAGE); }
-
-  function findFrame(pattern) {
-    for (var i = 0; i < frames.length; i++) {
-      var frame = frames.item(i);
-
-      if (pattern.test(frame.src || '')) return frame;
-    }
-
-    return null;
-  }
-
   // ===== The countdown screen =====
 
   var COUNTDOWN_PAGE = /CoreUI0\.html/;
@@ -496,11 +451,15 @@
   // The order being worked on, as a bar entry, or null when there is none.
   var preNow = null;
 
-  // The frame the countdown screen was last found in, kept while it stays in the document and holds it.
+  // The frame the bar was last drawn in, so the bar can be taken out of it once the HUD shows the queue.
   var preFrame = null;
 
+  // The Toolkit's check of the countdown screen, or null until the Toolkit's script has run.
+  var countdownWatch = null;
+
   // The plugin's call: the waiting orders, an empty list for a new game, or null once the HUD shows the queue; and the
-  // order being worked on, or null.
+  // order being worked on, or null. Set up at once, since the plugin calls it right after it sends this script, which
+  // can be before the Toolkit's script has run.
   window.__slfqPre = function (list, current) {
     try {
       preQueue = Array.isArray(list) ? list : null;
@@ -511,7 +470,6 @@
     }
   };
 
-  // Outside the countdown a poll costs nothing here.
   function patchCountdown() {
     if (preQueue === null) {
       if (preFrame) dropPreBar(preFrame);
@@ -521,8 +479,15 @@
       return;
     }
 
-    if (!preFrame || !preFrame.isConnected) preFrame = findFrame(COUNTDOWN_PAGE);
-    if (preFrame) patchCountdownFrame(preFrame);
+    if (countdownWatch) countdownWatch.refresh();
+  }
+
+  // Outside the countdown a check costs nothing here.
+  function patchCountdownPage(frame) {
+    if (preQueue === null) return;
+
+    preFrame = frame;
+    patchCountdownFrame(frame);
   }
 
   function patchCountdownFrame(frame) {
@@ -546,7 +511,7 @@
 
     try {
       listenPre(page);
-      addStyle(doc, PRE_STYLE_ID, PRE_CSS);
+      etk.addStyle(doc, PRE_STYLE_ID, PRE_CSS);
 
       var bar = preBarOf(doc);
 
@@ -837,7 +802,7 @@
       var order = preNow;
 
       if (!order || !(order.icon || order.name) || !order.isCancellable || !(order.parentId > 0)) return;
-      if (window.vuplex) window.vuplex.postMessage(CANCEL_MESSAGE + order.parentId);
+      if (etk) etk.send(CANCEL_MESSAGE, order.parentId);
     } catch (e) {
       diag('countdown cancel', e);
     }
@@ -919,7 +884,7 @@
 
       if (!order || !(order.icon || order.name) || !order.isCancellable || !(order.parentId > 0)) return;
       if (slot.style.pointerEvents === 'none') return;
-      if (window.vuplex) window.vuplex.postMessage(CANCEL_MESSAGE + order.parentId);
+      if (etk) etk.send(CANCEL_MESSAGE, order.parentId);
     } catch (e) {
       diag('countdown cancel', e);
     }
@@ -956,16 +921,12 @@
     try {
       // A page the script has not met yet: the frame may have been loaded with another page since.
       if (!page.__slfq) {
-        if (!CORE_PAGE.test(frame.src || '')) {
-          coreFrame = null;
-
-          return;
-        }
+        if (!CORE_PAGE.test(frame.src || '')) return;
 
         listen(page);
       }
 
-      addStyle(doc, STYLE_ID, CSS);
+      etk.addStyle(doc, STYLE_ID, CSS);
 
       if (!doc.__slfqChecked) restoreQueue(page, doc);
 
@@ -977,17 +938,27 @@
     }
   }
 
-  setInterval(function () {
-    try {
-      patchPages();
-    } catch (e) {
-      diag('poll', e);
-    }
+  // ===== Exiled's Toolkit =====
 
-    try {
-      patchCountdown();
-    } catch (e) {
-      diag('countdown poll', e);
-    }
-  }, POLL_MS);
+  // Runs once the Toolkit's page API is there: at once when its script ran first, else when it runs. Its check hands
+  // over the HUD and the countdown screen four times a second; a list the plugin sent before that waits in preQueue.
+  function startWithToolkit(api) {
+    etk = api;
+    etk.watchPages(CORE_PAGE, function (doc, frame) {
+      try {
+        patchFrame(frame);
+      } catch (e) {
+        diag('poll', e);
+      }
+    }, { everyCheck: true });
+    countdownWatch = etk.watchPages(COUNTDOWN_PAGE, function (doc, frame) {
+      try {
+        patchCountdownPage(frame);
+      } catch (e) {
+        diag('countdown poll', e);
+      }
+    }, { everyCheck: true });
+  }
+
+  (window.ExiledToolkitReady = window.ExiledToolkitReady || []).push(startWithToolkit);
 })();

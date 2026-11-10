@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1
+
+- Now uses Exiled's Toolkit for its shared parts, so it needs Exiled's Toolkit 0.19.0 or newer.
+- Made for Survival Log 1.1.20719.
+
 ## 0.4.0
 
 - The countdown before the disaster now has a queue bar. The game shows none there, so the mod adds one in the bottom left corner, under the buttons there, which move up to make room. Like the bar after the disaster, it starts with a big box for what your character is doing now, with the same ring that shows how far along it is (and how many items are put away when storing), then the arrow, then the waiting orders. Click an order, or the big box, to cancel it. It goes away when the disaster starts.

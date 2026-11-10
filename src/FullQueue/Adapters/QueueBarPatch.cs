@@ -1,9 +1,9 @@
 using System;
 using System.Collections.Generic;
+using ExiledToolkit.Game;
 using FullQueue.Core;
 using GameCore.HotUpdate;
 using GameCore.HotUpdate.ReduxUI;
-using HarmonyLib;
 using ActionTable = Il2CppSystem.Collections.Generic.Dictionary<int, GameCore.HotUpdate.Config_Action>;
 
 namespace FullQueue.Adapters;
@@ -41,12 +41,19 @@ internal static class QueueBarPatch
     private static readonly object?[] TablesRead = new object?[2];
 
     private static bool _hasReportedOddText;
+    private static PatchKit? _hooks;
+    private static Action<string> _log = _ => { };
 
-    public static bool Apply(Harmony harmony) =>
-        PatchKit.Patch(harmony, typeof(QueueBarPatch), typeof(Reducer_Web_CoreUI1), nameof(Reducer_Web_CoreUI1.RA_UpdateActionList), UpdateParameters,
-            nameof(ShowEveryOrder),
-            "hooked Reducer_Web_CoreUI1.RA_UpdateActionList: the queue bar gets every waiting order",
-            "the queue bar shows the first five waiting orders as in the game");
+    public static bool Apply(PatchKit hooks, Action<string> log)
+    {
+        _hooks = hooks;
+        _log = log;
+
+        return hooks.Patch(typeof(QueueBarPatch), typeof(Reducer_Web_CoreUI1), nameof(Reducer_Web_CoreUI1.RA_UpdateActionList), UpdateParameters,
+            postfix: nameof(ShowEveryOrder),
+            done: "hooked Reducer_Web_CoreUI1.RA_UpdateActionList: the queue bar gets every waiting order",
+            consequence: "the queue bar shows the first five waiting orders as in the game");
+    }
 
     private static void ShowEveryOrder(Ac_CoreUI1_UpdateActionList ac, State_Web_CoreUI1 state)
     {
@@ -75,7 +82,7 @@ internal static class QueueBarPatch
         }
         catch (Exception ex)
         {
-            PatchKit.Fail(Doing, ex);
+            _hooks?.Fail(Doing, ex);
         }
     }
 
@@ -142,6 +149,6 @@ internal static class QueueBarPatch
         if (_hasReportedOddText) return;
 
         _hasReportedOddText = true;
-        PatchKit.Log("the game's queue bar text is not a list, left as the game wrote it; the bar shows the first five (reported once)");
+        _log("the game's queue bar text is not a list, left as the game wrote it; the bar shows the first five (reported once)");
     }
 }
