@@ -27,7 +27,7 @@ namespace FullQueue.Adapters;
 /// </summary>
 internal static class CountdownBar
 {
-    private const string Doing = "showing the queue on the countdown screen, the countdown shows no queue as in the game";
+    private const string Doing = "showing the queue on the countdown screen, the countdown shows no queue, same as without the mod";
 
     /// <summary>The ActionSourceType the game marks as automatic in its bar.</summary>
     private const int AutoSource = 1;
@@ -74,7 +74,7 @@ internal static class CountdownBar
         }
         catch (Exception ex)
         {
-            log("could not find the queue's fields, the countdown screen shows no queue as in the game: " + ex.Message);
+            log("could not find the queue's fields, the countdown screen shows no queue, same as without the mod: " + ex.Message);
 
             return false;
         }
@@ -82,7 +82,7 @@ internal static class CountdownBar
         if (!hooks.Patch(typeof(CountdownBar), typeof(ActionManager), nameof(ActionManager.SyncActionList), SyncParameters,
                 postfix: nameof(SyncQueue),
                 done: "hooked ActionManager.SyncActionList: the countdown screen shows the queue",
-                consequence: "the countdown screen shows no queue as in the game"))
+                consequence: "the countdown screen shows no queue, same as without the mod"))
             return false;
 
         hooks.Patch(typeof(CountdownBar), typeof(Ac_CoreUI0_Open), nameof(Ac_CoreUI0_Open.SendAction), OpenParameters,

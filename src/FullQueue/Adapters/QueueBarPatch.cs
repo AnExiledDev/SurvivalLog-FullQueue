@@ -52,7 +52,7 @@ internal static class QueueBarPatch
         return hooks.Patch(typeof(QueueBarPatch), typeof(Reducer_Web_CoreUI1), nameof(Reducer_Web_CoreUI1.RA_UpdateActionList), UpdateParameters,
             postfix: nameof(ShowEveryOrder),
             done: "hooked Reducer_Web_CoreUI1.RA_UpdateActionList: the queue bar gets every waiting order",
-            consequence: "the queue bar shows the first five waiting orders as in the game");
+            consequence: "the queue bar shows only the first five waiting orders, like it normally does");
     }
 
     private static void ShowEveryOrder(Ac_CoreUI1_UpdateActionList ac, State_Web_CoreUI1 state)

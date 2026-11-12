@@ -90,7 +90,7 @@ internal static class QueuePatch
         {
             QueueChange.OpenQueue => $"{where}: new orders now join the queue instead of replacing it",
             QueueChange.AlreadyQueuing => $"{where}: the game already queues orders here, nothing changed",
-            QueueChange.SwitchedOff => $"{where}: switched off in the settings, one order at a time as in the game",
+            QueueChange.SwitchedOff => $"{where}: switched off in the settings, one order at a time like normal",
             _ => $"{where}: left to the game",
         };
     }
