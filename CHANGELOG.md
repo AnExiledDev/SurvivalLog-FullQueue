@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.5
+
+- Quick store counts no longer pile up while you play at home.
+- Made for Survival Log 1.1.21671.
+
 ## 0.4.4
 
 - Clearer wording in the log.

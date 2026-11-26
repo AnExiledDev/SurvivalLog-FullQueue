@@ -273,6 +273,7 @@ internal static class CountdownBar
     private static void Drop()
     {
         Shown.Forget();
+        Counts.Stop();
         _playerId = 0;
         _pending = CountdownPage.ShowCall(CountdownPage.NoQueue);
         LastCall = null;

@@ -76,6 +76,25 @@ public class OrderProgressTests
         Assert.Equal(new StoreCount(2, 5), counts.Of(8));
     }
 
+    // The game sends counts at home all session long; once the countdown bar is gone none of them may pile up.
+    [Fact]
+    public void Counts_are_not_kept_after_stop_until_the_next_countdown()
+    {
+        var counts = new StoreCounts();
+
+        counts.Set(7, 1, 4);
+        counts.Stop();
+
+        Assert.Null(counts.Of(7));
+
+        counts.Set(8, 2, 5);
+        Assert.Null(counts.Of(8));
+
+        counts.Clear();
+        counts.Set(8, 2, 5);
+        Assert.Equal(new StoreCount(2, 5), counts.Of(8));
+    }
+
     // The version is how the plugin tells the page has a count to redraw, so it moves on a change and only then.
     [Fact]
     public void Only_a_real_change_moves_the_version()

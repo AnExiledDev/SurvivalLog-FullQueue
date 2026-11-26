@@ -30,7 +30,7 @@ Full Queue adds no data to your save and does not edit game files. You can remov
 
 ## Requirements
 
-- Survival Log 1.1.20719. The mod is built for this version, and a game update can break it until the mod is updated.
+- Survival Log 1.1.21671. The mod is built for this version, and a game update can break it until the mod is updated.
 - The [BepInEx Pack for Survival Log](https://www.nexusmods.com/survivallog/mods/12), the BepInEx 6 (IL2CPP) build for the game, version `6.0.0-be.788`.
 - [Exiled's Toolkit](https://github.com/AnExiledDev/SurvivalLog-ExiledToolkit) 0.20.0 or newer. Full Queue doesn't load without it. It applies settings you change on the Mod Manager's Mods screen without restarting the game.
 - Optional: [Mod Manager](https://www.nexusmods.com/survivallog/mods/73). With it, you can change every setting in game on its Mods screen and see what each one does, without opening the config file.

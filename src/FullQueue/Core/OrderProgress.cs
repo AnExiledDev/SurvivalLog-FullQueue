@@ -52,17 +52,22 @@ public readonly record struct OrderProgress(bool Show, float Percent, float Dura
 
 /// <summary>
 /// The store counts the game last sent its HUD (Ac_CoreUI1_QuickStoreProgress), by order, kept the way the HUD keeps
-/// them (Reducer_Web_CoreUI1.RA_QuickStoreProgress): a total of 0 or less ends the order's count.
+/// them (Reducer_Web_CoreUI1.RA_QuickStoreProgress): a total of 0 or less ends the order's count. The game sends
+/// counts at home too, where nothing reads them, so they are kept only from Clear (a new countdown) until Stop.
 /// </summary>
 public sealed class StoreCounts
 {
     private readonly Dictionary<long, StoreCount> _counts = new();
+
+    private bool _isKeeping = true;
 
     /// <summary>Goes up on every change, so the queue's stamp can tell a new count without reading them.</summary>
     public int Version { get; private set; }
 
     public void Set(long parentId, int placed, int total)
     {
+        if (!_isKeeping) return;
+
         if (total <= 0)
         {
             if (_counts.Remove(parentId)) Version++;
@@ -80,11 +85,21 @@ public sealed class StoreCounts
 
     public StoreCount? Of(long parentId) => _counts.TryGetValue(parentId, out var count) ? count : null;
 
+    /// <summary>Drops every count and keeps new ones.</summary>
     public void Clear()
     {
+        _isKeeping = true;
+
         if (_counts.Count == 0) return;
 
         _counts.Clear();
         Version++;
+    }
+
+    /// <summary>Drops every count and ignores new ones until the next Clear.</summary>
+    public void Stop()
+    {
+        Clear();
+        _isKeeping = false;
     }
 }
